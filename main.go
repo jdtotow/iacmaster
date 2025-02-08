@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/jdtotow/iacmaster/entities"
+	"github.com/jdtotow/iacmaster/src/IaCMaster/entities"
 )
 
 func main() {
