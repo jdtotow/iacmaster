@@ -1,11 +1,17 @@
 package entities
 
+import (
+	"github.com/google/uuid"
+)
+
 // User structure
 type User struct {
-	Fullname string
-	Email    string
-	Username string
-	Password string
+	Fullname       string
+	Email          string
+	Username       string
+	Password       string
+	OrganizationId string
+	ID             string
 }
 
 // Creating user
@@ -15,6 +21,7 @@ func CreateUser(fullname, email, username, password string) User {
 		Email:    email,
 		Username: username,
 		Password: password,
+		ID:       uuid.New().String(),
 	}
 }
 
@@ -51,10 +58,15 @@ func (user *User) SetPassword(password string) {
 type UserGroup struct {
 	Name    string
 	Members []*User
+	ID      string
 }
 
 func CreateUserGroup(name string) UserGroup {
-	return UserGroup{Name: name, Members: []*User{}}
+	return UserGroup{
+		Name:    name,
+		Members: []*User{},
+		ID:      uuid.New().String(),
+	}
 }
 func (group UserGroup) GetName() string {
 	return group.Name
@@ -81,22 +93,45 @@ func (group *UserGroup) AddMember(user *User) {
 
 // Organization structure
 type Organization struct {
-	Name string
+	Name      string
+	Admin     *User
+	ID        string
+	Variables []*EnvironmentVariable
 }
 
 func CreateOrganization(name string) Organization {
-	return Organization{Name: name}
+	return Organization{
+		Name: name,
+		ID:   uuid.New().String(),
+	}
+}
+func (org *Organization) SetName(name string) {
+	org.Name = name
+}
+func (org *Organization) SetAdmin(user *User) {
+	org.Admin = user
+	user.OrganizationId = org.ID
+}
+func (org Organization) GetOrgID() string {
+	return org.ID
 }
 
 // Project structure
 type Project struct {
-	Name   string
-	Parent string
-	Org    Organization
+	Name           string
+	Parent         string
+	OrganizationID string
+	ID             string
+	Variables      []*EnvironmentVariable
 }
 
-func CreateProject(name, parent string, org Organization) Project {
-	return Project{Name: name, Parent: parent, Org: org}
+func CreateProject(name, parent string, org string) Project {
+	return Project{
+		Name:           name,
+		Parent:         parent,
+		OrganizationID: org,
+		ID:             uuid.New().String(),
+	}
 }
 func (project Project) GetName() string {
 	return project.Name
@@ -104,8 +139,8 @@ func (project Project) GetName() string {
 func (project Project) GetParent() string {
 	return project.Parent
 }
-func (project Project) GetOrganization() Organization {
-	return project.Org
+func (project Project) GetOrganization() string {
+	return project.OrganizationID
 }
 
 // Environment variables
@@ -138,6 +173,7 @@ type IaCArtifact struct {
 	Type   string
 	Name   string
 	ScmUrl string
+	ID     string
 }
 
 func CreateIaCArtifact(_type, name, scm string) IaCArtifact {
@@ -155,4 +191,20 @@ func (arti IaCArtifact) GetName() string {
 }
 func (arti IaCArtifact) GetSCMUrl() string {
 	return arti.ScmUrl
+}
+func (arti *IaCArtifact) SetType(_type string) {
+	arti.Type = _type
+}
+func (arti *IaCArtifact) SetName(name string) {
+	arti.Name = name
+}
+func (arti *IaCArtifact) SetSCMurl(url string) {
+	arti.ScmUrl = url
+}
+
+// Environment structure
+type Environment struct {
+	Name          string
+	ProjectID     string
+	IaCArtifactID string
 }
