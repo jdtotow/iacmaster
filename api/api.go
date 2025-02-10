@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jdtotow/iacmaster/controllers"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,7 +15,7 @@ type Server struct {
 	port              int
 	router            *gin.Engine
 	supportedEndpoint []string
-	dbController      *DBController
+	dbController      *controllers.DBController
 }
 
 func getSupportedEnpoint() []string {
@@ -30,11 +32,12 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateServer(port int) *Server {
+func CreateServer(uri, username, password, dbname string, port, dbPort int) *Server {
 	return &Server{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
+		dbController:      controllers.CreateDBController(uri, username, password, dbname, dbPort),
 	}
 }
 
@@ -94,6 +97,7 @@ func (s *Server) skittlesMan(context *gin.Context) {
 	for _, _path := range s.supportedEndpoint {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
+			s.dbController.Handle(context, objectName)
 		}
 	}
 

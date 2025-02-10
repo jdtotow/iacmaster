@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +30,6 @@ func (db *DBController) Connect() error {
 	return err
 }
 
-func (db *DBController) handle(context *gin.Context, concernedObject string) {
-
+func (db *DBController) Handle(context *gin.Context, concernedObject string) {
+	fmt.Println("DBController reached, object called : ", concernedObject)
 }
