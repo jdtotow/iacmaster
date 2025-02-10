@@ -202,9 +202,20 @@ func (arti *IaCArtifact) SetSCMurl(url string) {
 	arti.ScmUrl = url
 }
 
+// Environment status structure
+type EnvironmentStatus string
+
 // Environment structure
+const (
+	Inactive EnvironmentStatus = "inactive"
+	Active   EnvironmentStatus = "active"
+	Running  EnvironmentStatus = "running"
+	Stopped  EnvironmentStatus = "stopped"
+)
+
 type Environment struct {
 	Name          string
 	ProjectID     string
 	IaCArtifactID string
+	Status        EnvironmentStatus
 }
