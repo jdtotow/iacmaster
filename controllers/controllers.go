@@ -1,10 +1,34 @@
 package controllers
 
-type UserController struct {
+import (
+	"errors"
+
+	"github.com/gin-gonic/gin"
+)
+
+type DBController struct {
+	dbUri      string
+	dbPort     int
+	dbUsername string
+	dbPassword string
+	dbName     string
 }
 
-type ProjectController struct {
+func CreateDBController(uri, username, password, dbname string, port int) *DBController {
+	return &DBController{
+		dbUri:      uri,
+		dbPort:     port,
+		dbUsername: username,
+		dbPassword: password,
+		dbName:     dbname,
+	}
 }
 
-type RunnerController struct {
+func (db *DBController) Connect() error {
+	err := errors.New("could not connect to DB")
+	return err
+}
+
+func (db *DBController) handle(context *gin.Context, concernedObject string) {
+
 }

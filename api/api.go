@@ -13,6 +13,7 @@ type Server struct {
 	port              int
 	router            *gin.Engine
 	supportedEndpoint []string
+	dbController      *DBController
 }
 
 func getSupportedEnpoint() []string {
@@ -64,8 +65,12 @@ func (s *Server) Start() error {
 	s.router.POST("/", s.homePage)
 
 	for _, path := range s.supportedEndpoint {
-		s.router.GET(path, s.skittlesMan)
-		s.router.POST(path, s.skittlesMan)
+		s.router.GET(path, s.skittlesMan)           // get all entries
+		s.router.GET(path+"/:id", s.skittlesMan)    // get one identify by id
+		s.router.DELETE(path+"/:id", s.skittlesMan) // delete one identify by id
+		s.router.POST(path, s.skittlesMan)          // create new one
+		s.router.PATCH(path+"/:id", s.skittlesMan)  //edit one field of the entry identify by id
+		s.router.PUT(path+"/:id", s.skittlesMan)    //replace the entiere object identify by id
 	}
 
 	err := s.router.Run(url)
@@ -81,42 +86,23 @@ func (s *Server) homePage(context *gin.Context) {
 	)
 }
 
-func (s *Server) isPathMatch(path, fullpath string) bool {
-	if !strings.HasPrefix(fullpath, path) {
-		return false
-	}
-	if len(fullpath) == len(path) {
-		return true
-	}
-	if fullpath[len(path)] == '/' {
-		return true
-	}
-	return false
-}
-
 func (s *Server) skittlesMan(context *gin.Context) {
 	path := context.FullPath()
 	method := context.Request.Method
 
+	var objectName string = ""
 	for _, _path := range s.supportedEndpoint {
-		if s.isPathMatch(_path, path) {
-			context.IndentedJSON(
-				http.StatusOK,
-				gin.H{
-					"path":    path,
-					"matched": _path,
-					"method":  method,
-					"message": "The proper handler will be invoqued",
-				},
-			)
-			return
+		if strings.HasPrefix(path, _path) {
+			objectName = strings.Replace(_path, "/", "", 1)
 		}
 	}
 
 	context.IndentedJSON(
-		http.StatusNotFound,
+		http.StatusOK,
 		gin.H{
-			"error": "path or method not supported",
+			"path":    path,
+			"method":  method,
+			"message": "The proper handler will be invoqued",
 		},
 	)
 }
