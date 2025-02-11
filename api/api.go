@@ -16,6 +16,7 @@ type Server struct {
 	router            *gin.Engine
 	supportedEndpoint []string
 	dbController      *controllers.DBController
+	seController      *controllers.SecurityController
 }
 
 func getSupportedEnpoint() []string {
@@ -32,12 +33,13 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateServer(uri, username, password, dbname string, port, dbPort int) *Server {
+func CreateServer(uri, username, password, dbname, secretKey string, port, dbPort int) *Server {
 	return &Server{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
 		dbController:      controllers.CreateDBController(uri, username, password, dbname, dbPort),
+		seController:      controllers.CreateSecurityController(secretKey),
 	}
 }
 
