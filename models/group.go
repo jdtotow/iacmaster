@@ -7,7 +7,7 @@ import (
 // User Group structure
 type UserGroup struct {
 	gorm.Model
-	Name   string
+	Name   string `gorm:"uniqueIndex"`
 	UserID uint
 }
 

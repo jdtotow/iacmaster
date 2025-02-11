@@ -20,9 +20,9 @@ func main() {
 	var dbUri string = os.Getenv("DB_URI")
 	var secretKey string = os.Getenv("SECRET_KEY")
 
-	fmt.Println("Welcome to IaC Master\nStartinh api server ...")
+	fmt.Println("Welcome to IaC Master\nStarting api server ...")
 	dbController := controllers.CreateDBController(dbUri)
-	seController := controllers.CreateSecurityController(secretKey)
+	seController := controllers.CreateSecurityController(secretKey, dbController)
 	http_server := api.CreateServer(port, dbController, seController)
 	http_server.Start()
 }

@@ -12,6 +12,7 @@ type User struct {
 	Password       string
 	OrganizationId string
 	groups         []UserGroup
+	roles          []Role
 }
 
 // Creating user
@@ -22,6 +23,7 @@ func CreateUser(fullname, email, username, password string) User {
 		Username: username,
 		Password: password,
 		groups:   []UserGroup{},
+		roles:    []Role{},
 	}
 }
 
@@ -55,9 +57,17 @@ func (user *User) SetPassword(password string) {
 func (user *User) AssignToGroup(group UserGroup) {
 	user.groups = append(user.groups, group)
 }
-func (user *User) IsMemberOfGroup(group UserGroup) bool {
+func (user User) IsMemberOfGroup(group UserGroup) bool {
 	for _, _group := range user.groups {
 		if _group.Name == group.Name {
+			return true
+		}
+	}
+	return false
+}
+func (user User) HasRole(role Role) bool {
+	for _, _role := range user.roles {
+		if _role.Name == role.Name {
 			return true
 		}
 	}

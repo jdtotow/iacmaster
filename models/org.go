@@ -9,6 +9,7 @@ type Organization struct {
 	Name      string `gorm:"uniqueIndex"`
 	Admin     int
 	Variables []*EnvironmentVariable
+	ProjectID uint
 }
 
 func CreateOrganization(name string) Organization {
