@@ -33,13 +33,13 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateServer(uri, username, password, dbname, secretKey string, port, dbPort int) *Server {
+func CreateServer(port int, dbController *controllers.DBController, seController *controllers.SecurityController) *Server {
 	return &Server{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
-		dbController:      controllers.CreateDBController(uri, username, password, dbname, dbPort),
-		seController:      controllers.CreateSecurityController(secretKey),
+		dbController:      dbController,
+		seController:      seController,
 	}
 }
 

@@ -1,40 +1,11 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-type DBController struct {
-	dbUri      string
-	dbPort     int
-	dbUsername string
-	dbPassword string
-	dbName     string
-}
-
-func CreateDBController(uri, username, password, dbname string, port int) *DBController {
-	return &DBController{
-		dbUri:      uri,
-		dbPort:     port,
-		dbUsername: username,
-		dbPassword: password,
-		dbName:     dbname,
-	}
-}
-
-func (db *DBController) Connect() error {
-	err := errors.New("could not connect to DB")
-	return err
-}
-
-func (db *DBController) Handle(context *gin.Context, concernedObject string) {
-	fmt.Println("DBController reached, object called : ", concernedObject)
-}
 
 type SecurityController struct {
 	secretKey []byte
