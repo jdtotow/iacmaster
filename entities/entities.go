@@ -219,3 +219,33 @@ type Environment struct {
 	IaCArtifactID string
 	Status        EnvironmentStatus
 }
+
+// type role
+type Role struct {
+	Name string
+}
+
+func (r Role) GetName() string {
+	return r.Name
+}
+func (r *Role) SetName(name string) {
+	r.Name = name
+}
+
+// Scope type
+type Scope struct {
+	Hierarchy map[string]int
+}
+
+func CreateScope() *Scope {
+	var hierarchy map[string]int = map[string]int{
+		"system":       0,
+		"organization": 1,
+		"project":      2,
+		"subproject":   3,
+		"environment":  4,
+	}
+	return &Scope{
+		Hierarchy: hierarchy,
+	}
+}
