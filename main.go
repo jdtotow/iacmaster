@@ -24,11 +24,11 @@ func main() {
 
 	fmt.Println("Initializing controllers ...")
 	dbController := controllers.CreateDBController(dbUri)
-	seController := controllers.CreateSecurityController(secretKey, dbController)
-	system := controllers.CreateSystem(nodeType, nodeName, dbController)
-	http_server := api.CreateServer(port, dbController, seController, system)
+	seController := controllers.CreateSecurityController(secretKey)
+	sysController := controllers.CreateSystem(nodeType, nodeName, dbController, seController)
 
-	system.Start()
+	sysController.Start()
 	fmt.Println("Welcome to IaC Master\nStarting api server ...")
+	http_server := api.CreateServer(port, sysController)
 	http_server.Start()
 }

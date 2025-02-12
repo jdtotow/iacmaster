@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jdtotow/iacmaster/models"
 )
 
 type System struct {
 	node         *models.Node
 	dbController *DBController
+	seController *SecurityController
 }
 
-func CreateSystem(nodeType, nodeName string, dbController *DBController) *System {
+func CreateSystem(nodeType, nodeName string, dbController *DBController, seController *SecurityController) *System {
 	n := &models.Node{
 		Type:   models.NodeType(nodeType),
 		Name:   nodeName,
@@ -21,6 +23,7 @@ func CreateSystem(nodeType, nodeName string, dbController *DBController) *System
 	return &System{
 		node:         n,
 		dbController: dbController,
+		seController: seController,
 	}
 }
 func (s *System) CheckMandatoryTableAndData() error {
@@ -62,4 +65,8 @@ func (s *System) Start() {
 			log.Fatal("Cannot continue, missing mandatory data")
 		}
 	}
+}
+
+func (s *System) Handle(context *gin.Context, objectName string) {
+	fmt.Println(objectName, " called ")
 }

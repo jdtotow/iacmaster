@@ -8,15 +8,13 @@ import (
 )
 
 type SecurityController struct {
-	secretKey    []byte
-	dbController *DBController
+	secretKey []byte
 }
 
-func CreateSecurityController(secretKey string, dbController *DBController) *SecurityController {
+func CreateSecurityController(secretKey string) *SecurityController {
 	var secret []byte = []byte(secretKey)
 	return &SecurityController{
-		secretKey:    secret,
-		dbController: dbController,
+		secretKey: secret,
 	}
 }
 

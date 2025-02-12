@@ -6,17 +6,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jdtotow/iacmaster/controllers"
-
 	"github.com/gin-gonic/gin"
+	"github.com/jdtotow/iacmaster/controllers"
 )
 
 type Server struct {
 	port              int
 	router            *gin.Engine
 	supportedEndpoint []string
-	dbController      *controllers.DBController
-	seController      *controllers.SecurityController
 	system            *controllers.System
 }
 
@@ -34,13 +31,11 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateServer(port int, dbController *controllers.DBController, seController *controllers.SecurityController, system *controllers.System) *Server {
+func CreateServer(port int, system *controllers.System) *Server {
 	return &Server{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
-		dbController:      dbController,
-		seController:      seController,
 		system:            system,
 	}
 }
@@ -101,16 +96,17 @@ func (s *Server) skittlesMan(context *gin.Context) {
 	for _, _path := range s.supportedEndpoint {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
-			s.dbController.Handle(context, objectName)
+			s.system.Handle(context, objectName)
+			return
 		}
 	}
 
 	context.IndentedJSON(
-		http.StatusOK,
+		http.StatusNotFound,
 		gin.H{
 			"path":    path,
 			"method":  method,
-			"message": "The proper handler will be invoqued",
+			"message": "No handler found for this object and request type",
 		},
 	)
 }
