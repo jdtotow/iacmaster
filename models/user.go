@@ -15,18 +15,6 @@ type User struct {
 	roles          []Role
 }
 
-// Creating user
-func CreateUser(fullname, email, username, password string) User {
-	return User{
-		Fullname: fullname,
-		Email:    email,
-		Username: username,
-		Password: password,
-		groups:   []UserGroup{},
-		roles:    []Role{},
-	}
-}
-
 // GetFullname
 func (user User) GetFullname() string {
 	return user.Fullname

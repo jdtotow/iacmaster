@@ -9,13 +9,6 @@ type IaCArtifact struct {
 	ScmUrl string
 }
 
-func CreateIaCArtifact(_type, name, scm string) IaCArtifact {
-	return IaCArtifact{
-		Type:   _type,
-		Name:   name,
-		ScmUrl: scm,
-	}
-}
 func (arti IaCArtifact) GetType() string {
 	return arti.Type
 }

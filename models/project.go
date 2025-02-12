@@ -8,16 +8,9 @@ type Project struct {
 	Name         string
 	Parent       string
 	Organization Organization
-	Variables    []*EnvironmentVariable
+	Variables    []EnvironmentVariable
 }
 
-func CreateProject(name, parent string, org Organization) Project {
-	return Project{
-		Name:         name,
-		Parent:       parent,
-		Organization: org,
-	}
-}
 func (project Project) GetName() string {
 	return project.Name
 }

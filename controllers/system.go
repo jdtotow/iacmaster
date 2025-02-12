@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jdtotow/iacmaster/api"
 	"github.com/jdtotow/iacmaster/models"
 )
 
@@ -12,9 +13,11 @@ type System struct {
 	node         *models.Node
 	dbController *DBController
 	seController *SecurityController
+	httpServer   *api.Server
+	channel      *chan models.HTTPMessage
 }
 
-func CreateSystem(nodeType, nodeName string, dbController *DBController, seController *SecurityController) *System {
+func CreateSystem(nodeType, nodeName string, dbController *DBController, seController *SecurityController, httpServer *api.Server, channel *chan models.HTTPMessage) *System {
 	n := &models.Node{
 		Type:   models.NodeType(nodeType),
 		Name:   nodeName,
@@ -24,6 +27,8 @@ func CreateSystem(nodeType, nodeName string, dbController *DBController, seContr
 		node:         n,
 		dbController: dbController,
 		seController: seController,
+		httpServer:   httpServer,
+		channel:      channel,
 	}
 }
 func (s *System) CheckMandatoryTableAndData() error {
@@ -63,6 +68,12 @@ func (s *System) Start() {
 		err := s.CheckMandatoryTableAndData()
 		if err != nil {
 			log.Fatal("Cannot continue, missing mandatory data")
+		}
+		//
+		fmt.Println("Welcome to IaC Master\nStarting api server ...")
+		go s.httpServer.Start()
+		for {
+
 		}
 	}
 }

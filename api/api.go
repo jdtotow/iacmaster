@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jdtotow/iacmaster/controllers"
+	"github.com/jdtotow/iacmaster/models"
 )
 
 type Server struct {
 	port              int
 	router            *gin.Engine
 	supportedEndpoint []string
-	system            *controllers.System
+	channel           *chan models.HTTPMessage
 }
 
 func getSupportedEnpoint() []string {
@@ -31,12 +31,12 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateServer(port int, system *controllers.System) *Server {
+func CreateServer(port int, channel *chan models.HTTPMessage) *Server {
 	return &Server{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
-		system:            system,
+		channel:           channel,
 	}
 }
 
@@ -96,7 +96,7 @@ func (s *Server) skittlesMan(context *gin.Context) {
 	for _, _path := range s.supportedEndpoint {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
-			s.system.Handle(context, objectName)
+			fmt.Println("object called", objectName)
 			return
 		}
 	}

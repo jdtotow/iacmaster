@@ -8,6 +8,7 @@ import (
 	"github.com/jdtotow/iacmaster/api"
 	"github.com/jdtotow/iacmaster/controllers"
 	"github.com/jdtotow/iacmaster/initializers"
+	"github.com/jdtotow/iacmaster/models"
 )
 
 func init() {
@@ -22,13 +23,13 @@ func main() {
 	var nodeName string = os.Getenv("NODE_NAME")
 	var nodeType string = os.Getenv("NODE_TYPE")
 
+	channel := make(chan models.HTTPMessage)
+
 	fmt.Println("Initializing controllers ...")
 	dbController := controllers.CreateDBController(dbUri)
 	seController := controllers.CreateSecurityController(secretKey)
-	sysController := controllers.CreateSystem(nodeType, nodeName, dbController, seController)
+	http_server := api.CreateServer(port, &channel)
+	system := controllers.CreateSystem(nodeType, nodeName, dbController, seController, http_server, &channel)
 
-	sysController.Start()
-	fmt.Println("Welcome to IaC Master\nStarting api server ...")
-	http_server := api.CreateServer(port, sysController)
-	http_server.Start()
+	system.Start()
 }
