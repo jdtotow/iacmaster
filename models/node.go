@@ -1,5 +1,7 @@
 package models
 
+import "gorm.io/gorm"
+
 type NodeType string
 
 const Primary NodeType = "primary"
@@ -14,8 +16,9 @@ const Down NodeStatus = "down"
 const Failed NodeStatus = "failed"
 
 type Node struct {
+	gorm.Model
 	Type   NodeType
-	Name   string
+	Name   string `gorm:"uniqueIndex"`
 	Status NodeStatus
 }
 

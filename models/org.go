@@ -6,10 +6,7 @@ import (
 
 type Organization struct {
 	gorm.Model
-	Name      string `gorm:"uniqueIndex"`
-	Admin     int
-	Variables []*EnvironmentVariable
-	ProjectID uint
+	Name string `gorm:"uniqueIndex"`
 }
 
 func CreateOrganization(name string) Organization {
@@ -20,6 +17,6 @@ func CreateOrganization(name string) Organization {
 func (org *Organization) SetName(name string) {
 	org.Name = name
 }
-func (org *Organization) SetAdmin(userID int) {
-	org.Admin = userID
+func (org *Organization) GetName() string {
+	return org.Name
 }

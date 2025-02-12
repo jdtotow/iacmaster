@@ -22,11 +22,13 @@ func main() {
 	var nodeName string = os.Getenv("NODE_NAME")
 	var nodeType string = os.Getenv("NODE_TYPE")
 
-	fmt.Println("Welcome to IaC Master\nStarting api server ...")
+	fmt.Println("Initializing controllers ...")
 	dbController := controllers.CreateDBController(dbUri)
 	seController := controllers.CreateSecurityController(secretKey, dbController)
 	system := controllers.CreateSystem(nodeType, nodeName, dbController)
+	http_server := api.CreateServer(port, dbController, seController, system)
+
 	system.Start()
-	http_server := api.CreateServer(port, dbController, seController)
+	fmt.Println("Welcome to IaC Master\nStarting api server ...")
 	http_server.Start()
 }
