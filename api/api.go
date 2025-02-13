@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jdtotow/iacmaster/controllers"
 	"github.com/jdtotow/iacmaster/models"
 )
 
@@ -16,6 +20,7 @@ type Server struct {
 	router            *gin.Engine
 	supportedEndpoint []string
 	channel           *chan models.HTTPMessage
+	dbController      *controllers.DBController
 }
 
 func getSupportedEnpoint() []string {
@@ -31,13 +36,31 @@ func getSupportedEnpoint() []string {
 		"/variable",
 	}
 }
+func GetObjectByName(name string) interface{} {
+	if name == "user" {
+		return models.User{}
+	} else if name == "group" {
+		return models.UserGroup{}
+	} else if name == "project" {
+		return models.Project{}
+	} else if name == "organization" {
+		return models.Organization{}
+	} else {
+		return nil
+	}
+}
 
-func CreateServer(port int, channel *chan models.HTTPMessage) *Server {
+func CreateServer(channel *chan models.HTTPMessage) *Server {
+	port, err := strconv.Atoi(os.Getenv("API_PORT"))
+	if err != nil {
+		port = 3000
+	}
 	return &Server{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
 		channel:           channel,
+		dbController:      controllers.CreateDBController(),
 	}
 }
 
@@ -98,6 +121,7 @@ func (s *Server) skittlesMan(context *gin.Context) {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
 			token, _ := context.Cookie("Authorization")
+			s.Handle(context, objectName)
 			message := models.HTTPMessage{
 				ObjectName:    objectName,
 				RequestOrigin: context.ClientIP(),
@@ -120,4 +144,45 @@ func (s *Server) skittlesMan(context *gin.Context) {
 			"message": "No handler found for this object and request type",
 		},
 	)
+}
+func (s *Server) Handle(context *gin.Context, objectName string) {
+	if context.Request.Method == "POST" {
+		//Resource creation
+		object := GetObjectByName(objectName)
+		if object == nil {
+			context.IndentedJSON(
+				http.StatusNotFound,
+				gin.H{
+					"error": "Object: " + objectName + " does not exists",
+				},
+			)
+		}
+		log.Println(context.Request.Body)
+		err := context.Bind(object)
+		if err != nil {
+			context.IndentedJSON(
+				http.StatusNotAcceptable,
+				gin.H{
+					"error": err.Error(),
+				},
+			)
+		}
+		org := object.(models.Organization)
+		org.SetUuid(uuid.NewString())
+		result := s.dbController.CreateInstance(org)
+		if result.Error == nil {
+			context.IndentedJSON(
+				http.StatusCreated,
+				gin.H{},
+			)
+		} else {
+			context.IndentedJSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": result.Error.Error(),
+				},
+			)
+		}
+
+	}
 }

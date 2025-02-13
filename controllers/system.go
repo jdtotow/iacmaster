@@ -3,11 +3,11 @@ package controllers
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jdtotow/iacmaster/api"
 	"github.com/jdtotow/iacmaster/models"
 )
 
@@ -15,7 +15,6 @@ type System struct {
 	node         *models.Node
 	dbController *DBController
 	seController *SecurityController
-	httpServer   *api.Server
 	channel      *chan models.HTTPMessage
 	peers        []*models.Node
 }
@@ -42,7 +41,18 @@ func CreatePeers(settings, myName string) []*models.Node {
 	log.Printf("%v nodes found in settings\n", len(result))
 	return result
 }
-func CreateSystem(nodeType, nodeName string, httpServer *api.Server, channel *chan models.HTTPMessage, uriDB, secretKey, clusterSetting string) *System {
+func CreateSystem(channel *chan models.HTTPMessage) *System {
+	var nodeName string = os.Getenv("NODE_NAME")
+	var nodeType string = os.Getenv("NODE_TYPE")
+	var clusterSetting string = os.Getenv("CLUSTER")
+
+	if nodeName == "" {
+		log.Fatal("Please set NODE_NAME variable")
+	}
+	if nodeType == "" {
+		log.Fatal("Please set NODE_TYPE variable")
+	}
+
 	n := &models.Node{
 		Type:   models.NodeType(nodeType),
 		Name:   nodeName,
@@ -51,9 +61,8 @@ func CreateSystem(nodeType, nodeName string, httpServer *api.Server, channel *ch
 	}
 	return &System{
 		node:         n,
-		dbController: CreateDBController(uriDB),
-		seController: CreateSecurityController(secretKey),
-		httpServer:   httpServer,
+		dbController: CreateDBController(),
+		seController: CreateSecurityController(),
 		channel:      channel,
 		peers:        CreatePeers(clusterSetting, nodeName),
 	}
@@ -81,10 +90,25 @@ func (s *System) CheckMandatoryTableAndData() error {
 		log.Println("The system role does not exist, it will be created")
 		role.SetName("system")
 		role.SetUuid(uuid.NewString())
-		result := s.dbController.db_client.Create(&role)
+		result := s.dbController.CreateInstance(&role)
 		if result.Error != nil {
 			fmt.Println(result.Error)
 			return result.Error
+		}
+		//create all roles
+		roles := []string{
+			"owner",
+			"administrator",
+			"project_manager",
+			"deployer",
+			"reader",
+		}
+		for _, _role := range roles {
+			r := models.Role{
+				Name: _role,
+				Uuid: uuid.NewString(),
+			}
+			s.dbController.CreateInstance(&r)
 		}
 	}
 	//verify the usergroup
@@ -95,7 +119,7 @@ func (s *System) CheckMandatoryTableAndData() error {
 		log.Println("The system role does not exist, it will be created")
 		group.SetName("system")
 		group.SetUuid(uuid.NewString())
-		result := s.dbController.db_client.Create(&group)
+		result := s.dbController.CreateInstance(&group)
 		if result.Error != nil {
 			fmt.Println(result.Error)
 			return result.Error
@@ -114,12 +138,13 @@ func (s *System) CheckMandatoryTableAndData() error {
 		systemUser.AddRole(role)
 		systemUser.SetOrganization(org)
 		systemUser.SetUuid(uuid.NewString())
-		result := s.dbController.db_client.Create(&systemUser)
+		result := s.dbController.CreateInstance(&systemUser)
 		if result.Error != nil {
 			fmt.Println(result.Error)
 			return result.Error
 		}
 	}
+	//
 	return nil
 }
 

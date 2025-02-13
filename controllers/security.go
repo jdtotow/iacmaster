@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,15 +13,16 @@ type SecurityController struct {
 	secretKey []byte
 }
 
-func CreateSecurityController(secretKey string) *SecurityController {
+func CreateSecurityController() *SecurityController {
+	secretKey := os.Getenv("SECRET_KEY")
+	if secretKey == "" {
+		log.Fatal("Please set SECRET_KEY environment parameter")
+	}
 	var secret []byte = []byte(secretKey)
+
 	return &SecurityController{
 		secretKey: secret,
 	}
-}
-
-func (s *SecurityController) GetRole(username string) string {
-	return ""
 }
 
 func (s *SecurityController) CreateToken(username string) (string, error) {
@@ -27,7 +30,6 @@ func (s *SecurityController) CreateToken(username string) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": username,                         // Subject (user identifier)
 		"iss": "iacmaster",                      // Issuer
-		"aud": s.GetRole(username),              // Audience (user role)
 		"exp": time.Now().Add(time.Hour).Unix(), // Expiration time
 		"iat": time.Now().Unix(),                // Issued at
 	})

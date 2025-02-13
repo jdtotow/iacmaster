@@ -1,10 +1,9 @@
 package controllers
 
 import (
-	"fmt"
 	"log"
+	"os"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -14,7 +13,11 @@ type DBController struct {
 	db_client *gorm.DB
 }
 
-func CreateDBController(uri string) *DBController {
+func CreateDBController() *DBController {
+	uri := os.Getenv("DB_URI")
+	if uri == "" {
+		log.Fatal("Please set the database uri, DB_URI")
+	}
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  uri,
 		PreferSimpleProtocol: true, // disables implicit prepared statement usage
@@ -28,7 +31,12 @@ func CreateDBController(uri string) *DBController {
 		db_client: db,
 	}
 }
-
-func (db *DBController) Handle(context *gin.Context, concernedObject string) {
-	fmt.Println("DBController reached, object called : ", concernedObject)
+func (db *DBController) CreateInstance(model interface{}) *gorm.DB {
+	return db.db_client.Create(model)
+}
+func (db *DBController) UpdateInstance(model interface{}) *gorm.DB {
+	return db.db_client.Save(model)
+}
+func (db *DBController) Delete(model interface{}) *gorm.DB {
+	return db.db_client.Delete(model)
 }
