@@ -97,7 +97,17 @@ func (s *Server) skittlesMan(context *gin.Context) {
 	for _, _path := range s.supportedEndpoint {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
-			fmt.Println("object called", objectName)
+			token, _ := context.Cookie("Authorization")
+			message := models.HTTPMessage{
+				ObjectName:    objectName,
+				RequestOrigin: context.ClientIP(),
+				Method:        context.Request.Method,
+				Url:           context.Request.RequestURI,
+				Token:         token,
+				Body:          context.Request.Body,
+				Params:        context.Request.URL.Query(),
+			}
+			*s.channel <- message
 			return
 		}
 	}

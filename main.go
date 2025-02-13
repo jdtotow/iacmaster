@@ -41,6 +41,6 @@ func main() {
 	http_server := api.CreateServer(port, &channel)
 	system := controllers.CreateSystem(nodeType, nodeName, http_server, &channel, dbUri, secretKey, clusterSetting)
 
+	go http_server.Start()
 	system.Start()
-	http_server.Start()
 }

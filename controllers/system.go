@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jdtotow/iacmaster/api"
@@ -130,6 +131,13 @@ func (s *System) Start() {
 		}
 		//
 		log.Println("IaC Master logic started !")
+		var message models.HTTPMessage
+		for {
+			log.Println("Waiting for event ...")
+			message = <-*s.channel
+			s.Handle(message)
+			time.Sleep(time.Second)
+		}
 	}
 }
 
