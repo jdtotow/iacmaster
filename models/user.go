@@ -6,17 +6,17 @@ import (
 
 type User struct {
 	gorm.Model
-	Fullname       string
+	Fullname       string `json:"fullname"`
 	Email          string `gorm:"uniqueIndex"`
-	Username       string
-	Password       string
+	Username       string `gorm:"uniqueIndex" json:"username"`
+	Password       string `json:"password"`
 	OrganizationID int
 	Organization   Organization
 	UserGroupID    int
 	groups         []UserGroup
 	RoleID         int
 	roles          []Role
-	Uuid           string
+	Uuid           string `json:"uuid"`
 }
 
 // GetFullname

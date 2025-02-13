@@ -36,19 +36,6 @@ func getSupportedEnpoint() []string {
 		"/variable",
 	}
 }
-func GetObjectByName(name string) interface{} {
-	if name == "user" {
-		return models.User{}
-	} else if name == "group" {
-		return models.UserGroup{}
-	} else if name == "project" {
-		return models.Project{}
-	} else if name == "organization" {
-		return models.Organization{}
-	} else {
-		return nil
-	}
-}
 
 func CreateServer(channel *chan models.HTTPMessage) *Server {
 	port, err := strconv.Atoi(os.Getenv("API_PORT"))
@@ -114,8 +101,6 @@ func (s *Server) homePage(context *gin.Context) {
 
 func (s *Server) skittlesMan(context *gin.Context) {
 	path := context.FullPath()
-	method := context.Request.Method
-
 	var objectName string = ""
 	for _, _path := range s.supportedEndpoint {
 		if strings.HasPrefix(path, _path) {
@@ -135,54 +120,75 @@ func (s *Server) skittlesMan(context *gin.Context) {
 			return
 		}
 	}
-
-	context.IndentedJSON(
-		http.StatusNotFound,
-		gin.H{
-			"path":    path,
-			"method":  method,
-			"message": "No handler found for this object and request type",
-		},
-	)
+	context.IndentedJSON(http.StatusNotFound, gin.H{})
 }
 func (s *Server) Handle(context *gin.Context, objectName string) {
 	if context.Request.Method == "POST" {
-		//Resource creation
-		object := GetObjectByName(objectName)
-		if object == nil {
-			context.IndentedJSON(
-				http.StatusNotFound,
-				gin.H{
-					"error": "Object: " + objectName + " does not exists",
-				},
-			)
-		}
-		log.Println(context.Request.Body)
-		err := context.Bind(object)
-		if err != nil {
-			context.IndentedJSON(
-				http.StatusNotAcceptable,
-				gin.H{
-					"error": err.Error(),
-				},
-			)
-		}
-		org := object.(models.Organization)
-		org.SetUuid(uuid.NewString())
-		result := s.dbController.CreateInstance(org)
-		if result.Error == nil {
-			context.IndentedJSON(
-				http.StatusCreated,
-				gin.H{},
-			)
+		if objectName == "organization" {
+			//create an organization
+			var org *models.Organization = &models.Organization{}
+			err := context.BindJSON(org)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			org.SetUuid(uuid.NewString())
+			result := s.dbController.CreateInstance(org)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
+		} else if objectName == "user" {
+			var user *models.User = &models.User{}
+			err := context.BindJSON(user)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			user.SetUuid(uuid.NewString())
+			result := s.dbController.CreateInstance(user)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
+		} else if objectName == "project" {
+			var project *models.Project = &models.Project{}
+			err := context.BindJSON(project)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			project.SetUuid(uuid.NewString())
+			result := s.dbController.CreateInstance(project)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
+		} else if objectName == "iacartifact" {
+			var arti *models.IaCArtifact = &models.IaCArtifact{}
+			err := context.BindJSON(arti)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			arti.SetUuid(uuid.NewString())
+			result := s.dbController.CreateInstance(arti)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
 		} else {
-			context.IndentedJSON(
-				http.StatusBadRequest,
-				gin.H{
-					"error": result.Error.Error(),
-				},
-			)
+			context.IndentedJSON(http.StatusNotFound, gin.H{"error": "object handler not found"})
 		}
+	} else if context.Request.Method == "GET" {
 
+	} else if context.Request.Method == "PUT" {
+
+	} else if context.Request.Method == "PATCH" {
+
+	} else if context.Request.Method == "DELETE" {
+
+	} else {
+		context.IndentedJSON(http.StatusMethodNotAllowed, gin.H{})
 	}
 }

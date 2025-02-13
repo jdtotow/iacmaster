@@ -5,11 +5,11 @@ import "gorm.io/gorm"
 // Project structure
 type Project struct {
 	gorm.Model
-	Name         string
-	Parent       string
+	Name         string `json:"name"`
+	Parent       string `json:"parent"`
 	Organization Organization
 	Variables    []EnvironmentVariable
-	Uuid         string
+	Uuid         string `json:"uuid"`
 }
 
 func (project Project) GetName() string {
@@ -20,4 +20,7 @@ func (project Project) GetParent() string {
 }
 func (project Project) GetOrganization() Organization {
 	return project.Organization
+}
+func (project *Project) SetUuid(uuid string) {
+	project.Uuid = uuid
 }

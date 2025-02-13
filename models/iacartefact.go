@@ -4,10 +4,10 @@ import "gorm.io/gorm"
 
 type IaCArtifact struct {
 	gorm.Model
-	Type   string
-	Name   string
-	ScmUrl string
-	Uuid   string
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	ScmUrl string `json:"scmurl"`
+	Uuid   string `json:"uuid"`
 }
 
 func (arti IaCArtifact) GetType() string {
@@ -27,4 +27,7 @@ func (arti *IaCArtifact) SetName(name string) {
 }
 func (arti *IaCArtifact) SetSCMurl(url string) {
 	arti.ScmUrl = url
+}
+func (arti *IaCArtifact) SetUuid(uuid string) {
+	arti.Uuid = uuid
 }

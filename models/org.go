@@ -6,8 +6,8 @@ import (
 
 type Organization struct {
 	gorm.Model
-	Name string `gorm:"uniqueIndex"`
-	Uuid string
+	Name string `gorm:"uniqueIndex" json:"name"`
+	Uuid string `json:"uuid"`
 }
 
 func CreateOrganization(name string) Organization {
