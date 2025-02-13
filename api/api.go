@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -74,7 +75,7 @@ func (s *Server) Start() error {
 		s.router.PATCH(path+"/:id", s.skittlesMan)  //edit one field of the entry identify by id
 		s.router.PUT(path+"/:id", s.skittlesMan)    //replace the entiere object identify by id
 	}
-
+	log.Println("Starting api server ...")
 	err := s.router.Run(url)
 	return err
 }

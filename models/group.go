@@ -7,18 +7,17 @@ import (
 // User Group structure
 type UserGroup struct {
 	gorm.Model
-	Name   string `gorm:"uniqueIndex"`
-	UserID uint
+	Name string `gorm:"uniqueIndex"`
+	Uuid string
 }
 
-func CreateUserGroup(name string) UserGroup {
-	return UserGroup{
-		Name: name,
-	}
-}
 func (group UserGroup) GetName() string {
 	return group.Name
 }
 func (group *UserGroup) SetName(name string) {
 	group.Name = name
+}
+
+func (group *UserGroup) SetUuid(uuid string) {
+	group.Uuid = uuid
 }

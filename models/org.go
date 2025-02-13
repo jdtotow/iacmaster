@@ -7,6 +7,7 @@ import (
 type Organization struct {
 	gorm.Model
 	Name string `gorm:"uniqueIndex"`
+	Uuid string
 }
 
 func CreateOrganization(name string) Organization {
@@ -19,4 +20,7 @@ func (org *Organization) SetName(name string) {
 }
 func (org *Organization) GetName() string {
 	return org.Name
+}
+func (org *Organization) SetUuid(uuid string) {
+	org.Uuid = uuid
 }

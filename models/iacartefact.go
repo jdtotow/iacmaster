@@ -7,6 +7,7 @@ type IaCArtifact struct {
 	Type   string
 	Name   string
 	ScmUrl string
+	Uuid   string
 }
 
 func (arti IaCArtifact) GetType() string {

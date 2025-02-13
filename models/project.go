@@ -9,6 +9,7 @@ type Project struct {
 	Parent       string
 	Organization Organization
 	Variables    []EnvironmentVariable
+	Uuid         string
 }
 
 func (project Project) GetName() string {
