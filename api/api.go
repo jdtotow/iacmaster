@@ -177,6 +177,32 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			} else {
 				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			}
+		} else if objectName == "environment" {
+			var env *models.Environment = &models.Environment{}
+			err := context.BindJSON(env)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			env.SetUuid(uuid.NewString())
+			result := s.dbController.CreateInstance(env)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
+		} else if objectName == "settings" {
+			var settings *models.IaCExecutionSettings = &models.IaCExecutionSettings{}
+			err := context.BindJSON(settings)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			settings.SetUuid(uuid.NewString())
+			result := s.dbController.CreateInstance(settings)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
 		} else {
 			context.IndentedJSON(http.StatusNotFound, gin.H{"error": "object handler not found"})
 		}

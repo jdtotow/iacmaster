@@ -25,3 +25,12 @@ func (c *CloudCredential) AddVariable(_var EnvironmentVariable) {
 		c.Variables = append(c.Variables, _var)
 	}
 }
+func (c CloudCredential) GetCloud(name DestinationCloud) []EnvironmentVariable {
+	result := []EnvironmentVariable{}
+	for _, _var := range c.Variables {
+		if _var.Type == EnvVariableType(name+"_credential") {
+			result = append(result, _var)
+		}
+	}
+	return result
+}

@@ -22,7 +22,7 @@ type Environment struct {
 	ExecSettings           IaCExecutionSettings
 	IaCExecutionSettingsID int
 	Status                 EnvStatus
-	Uuid                   string
+	Uuid                   string `json:"uuid"`
 }
 
 func (env *Environment) SetName(name string) {
@@ -39,4 +39,7 @@ func (env *Environment) SetArtifact(arti IaCArtifact) {
 }
 func (env *Environment) SetExecutionSettings(execSettings IaCExecutionSettings) {
 	env.ExecSettings = execSettings
+}
+func (env *Environment) SetUuid(uuid string) {
+	env.Uuid = uuid
 }

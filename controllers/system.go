@@ -95,21 +95,6 @@ func (s *System) CheckMandatoryTableAndData() error {
 			log.Println(result.Error)
 			return result.Error
 		}
-		//create all roles
-		roles := []string{
-			"owner",
-			"administrator",
-			"project_manager",
-			"deployer",
-			"reader",
-		}
-		for _, _role := range roles {
-			r := models.Role{
-				Name: _role,
-				Uuid: uuid.NewString(),
-			}
-			s.dbController.CreateInstance(&r)
-		}
 	}
 	//verify the usergroup
 	group := models.UserGroup{}
