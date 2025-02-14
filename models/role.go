@@ -4,8 +4,8 @@ import "gorm.io/gorm"
 
 type Role struct {
 	gorm.Model
-	Name string
-	Uuid string
+	Name string `json:"name"`
+	Uuid string `gorm:"primaryKey" json:"uuid"`
 }
 
 func (r Role) GetName() string {

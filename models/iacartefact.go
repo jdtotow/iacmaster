@@ -6,8 +6,8 @@ type IaCArtifact struct {
 	gorm.Model
 	Type   string `json:"type"`
 	Name   string `json:"name"`
-	ScmUrl string `json:"scmurl"`
-	Uuid   string `json:"uuid"`
+	ScmUrl string `json:"scm_url"`
+	Uuid   string `gorm:"primaryKey" json:"uuid"`
 }
 
 func (arti IaCArtifact) GetType() string {

@@ -1,9 +1,10 @@
 import request 
 
-#create user
+#create user 
 #create organization
-#create group 
+#invite user
 #create project 
+#create git credential 
 #create iacartefact
 #create cloudcredential
 #create environment variables

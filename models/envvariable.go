@@ -11,9 +11,10 @@ const GENERAL EnvVariableType = "general"
 
 type EnvironmentVariable struct {
 	gorm.Model
-	Type  EnvVariableType
-	Name  string
-	Value string
+	Type  EnvVariableType `json:"type"`
+	Name  string          `json:"name"`
+	Value string          `json:"value"`
+	Uuid  string          `gorm:"primaryKey" json:"uuid"`
 }
 
 func CreateEnvironmentVariable(name, value string) EnvironmentVariable {
@@ -33,4 +34,7 @@ func (env *EnvironmentVariable) SetName(name string) {
 }
 func (env *EnvironmentVariable) SetValue(value string) {
 	env.Value = value
+}
+func (env *EnvironmentVariable) SetUuid(uuid string) {
+	env.Uuid = uuid
 }

@@ -8,7 +8,7 @@ import (
 type UserGroup struct {
 	gorm.Model
 	Name string `gorm:"uniqueIndex"`
-	Uuid string
+	Uuid string `gorm:"primaryKey" json:"uuid"`
 }
 
 func (group UserGroup) GetName() string {

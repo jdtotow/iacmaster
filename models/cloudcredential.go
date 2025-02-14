@@ -4,9 +4,10 @@ import "gorm.io/gorm"
 
 type CloudCredential struct {
 	gorm.Model
-	Name      string `gorm:"uniqueIndex"`
-	Type      DestinationCloud
-	Variables []EnvironmentVariable
+	Name      string                `gorm:"uniqueIndex"`
+	Type      DestinationCloud      `json:"destination_cloud"`
+	Variables []EnvironmentVariable `json:"variables"`
+	Uuid      string                `gorm:"primaryKey" json:"uuid"`
 }
 
 func (c *CloudCredential) SetType(_type string) {
@@ -33,4 +34,7 @@ func (c CloudCredential) GetCloud(name DestinationCloud) []EnvironmentVariable {
 		}
 	}
 	return result
+}
+func (c *CloudCredential) SetUuid(uuid string) {
+	c.Uuid = uuid
 }
