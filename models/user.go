@@ -11,11 +11,11 @@ type User struct {
 	Username       string `gorm:"uniqueIndex" json:"username"`
 	Password       string `json:"password"`
 	OrganizationID int
-	Organization   Organization
+	Organization   Organization `json:"organization"`
 	UserGroupID    int
-	groups         []UserGroup
+	Groups         []UserGroup `json:"groups"`
 	RoleID         int
-	roles          []Role
+	Roles          []Role `json:"roles"`
 	Uuid           string `json:"uuid"`
 }
 
@@ -48,11 +48,11 @@ func (user *User) SetPassword(password string) {
 }
 func (user *User) AssignToGroup(group UserGroup) {
 	if !user.IsMemberOfGroup(group) {
-		user.groups = append(user.groups, group)
+		user.Groups = append(user.Groups, group)
 	}
 }
 func (user User) IsMemberOfGroup(group UserGroup) bool {
-	for _, _group := range user.groups {
+	for _, _group := range user.Groups {
 		if _group.Name == group.Name {
 			return true
 		}
@@ -60,15 +60,15 @@ func (user User) IsMemberOfGroup(group UserGroup) bool {
 	return false
 }
 func (user *User) AddRole(role Role) {
-	for _, _role := range user.roles {
+	for _, _role := range user.Roles {
 		if role.GetName() == _role.GetName() {
 			return
 		}
 	}
-	user.roles = append(user.roles, role)
+	user.Roles = append(user.Roles, role)
 }
 func (user User) HasRole(role Role) bool {
-	for _, _role := range user.roles {
+	for _, _role := range user.Roles {
 		if _role.Name == role.Name {
 			return true
 		}

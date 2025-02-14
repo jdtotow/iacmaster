@@ -2,8 +2,16 @@ package models
 
 import "gorm.io/gorm"
 
+type EnvVariableType string
+
+const AzureCredential EnvVariableType = "azure_credential"
+const AWSCredential EnvVariableType = "aws_credential"
+const GCPCredential EnvVariableType = "gcp_credential"
+const GENERAL EnvVariableType = "general"
+
 type EnvironmentVariable struct {
 	gorm.Model
+	Type  EnvVariableType
 	Name  string
 	Value string
 }

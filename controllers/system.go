@@ -78,7 +78,7 @@ func (s *System) CheckMandatoryTableAndData() error {
 		org.SetUuid(uuid.NewString())
 		result := s.dbController.db_client.Create(&org)
 		if result.Error != nil {
-			fmt.Println(result.Error)
+			log.Println(result.Error)
 			return result.Error
 		}
 	}
@@ -92,7 +92,7 @@ func (s *System) CheckMandatoryTableAndData() error {
 		role.SetUuid(uuid.NewString())
 		result := s.dbController.CreateInstance(&role)
 		if result.Error != nil {
-			fmt.Println(result.Error)
+			log.Println(result.Error)
 			return result.Error
 		}
 		//create all roles
@@ -121,7 +121,7 @@ func (s *System) CheckMandatoryTableAndData() error {
 		group.SetUuid(uuid.NewString())
 		result := s.dbController.CreateInstance(&group)
 		if result.Error != nil {
-			fmt.Println(result.Error)
+			log.Println(result.Error)
 			return result.Error
 		}
 	}
@@ -140,7 +140,7 @@ func (s *System) CheckMandatoryTableAndData() error {
 		systemUser.SetUuid(uuid.NewString())
 		result := s.dbController.CreateInstance(&systemUser)
 		if result.Error != nil {
-			fmt.Println(result.Error)
+			log.Println(result.Error)
 			return result.Error
 		}
 	}

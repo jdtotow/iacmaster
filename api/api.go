@@ -78,12 +78,12 @@ func (s *Server) Start() error {
 	s.router.POST("/", s.homePage)
 
 	for _, path := range s.supportedEndpoint {
-		s.router.GET(path, s.skittlesMan)           // get all entries
-		s.router.GET(path+"/:id", s.skittlesMan)    // get one identify by id
-		s.router.DELETE(path+"/:id", s.skittlesMan) // delete one identify by id
-		s.router.POST(path, s.skittlesMan)          // create new one
-		s.router.PATCH(path+"/:id", s.skittlesMan)  //edit one field of the entry identify by id
-		s.router.PUT(path+"/:id", s.skittlesMan)    //replace the entiere object identify by id
+		s.router.GET(path, s.skittlesMan)             // get all entries
+		s.router.GET(path+"/:uuid", s.skittlesMan)    // get one identify by uuid
+		s.router.DELETE(path+"/:uuid", s.skittlesMan) // delete one identify by uuid
+		s.router.POST(path, s.skittlesMan)            // create new one
+		s.router.PATCH(path+"/:uuid", s.skittlesMan)  //edit one field of the entry identify by uuid
+		s.router.PUT(path+"/:uuid", s.skittlesMan)    //replace the entiere object identify by uuid
 	}
 	log.Println("Starting api server ...")
 	err := s.router.Run(url)
