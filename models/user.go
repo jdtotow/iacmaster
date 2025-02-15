@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -10,13 +11,11 @@ type User struct {
 	Email            string `gorm:"uniqueIndex"`
 	Username         string `gorm:"uniqueIndex" json:"username"`
 	Password         string `json:"password"`
-	OrganizationUuid string
-	Organization     Organization `json:"organization" gorm:"foreignKey:Uuid;references:OrganizationUuid"`
-	UserGroupUuid    string
-	Groups           []UserGroup `json:"groups" gorm:"foreignKey:Uuid;references:UserGroupUuid"`
-	RoleUuid         string
-	Roles            []Role `json:"roles" gorm:"foreignKey:Uuid;references:RoleUuid"`
-	Uuid             string `gorm:"primaryKey" json:"uuid"`
+	OrganizationUuid uuid.UUID
+	Organization     Organization `json:"organization" gorm:"foreignKey:OrganizationUuid"`
+	Groups           []UserGroup  `json:"groups" gorm:"many2many:user_groups;"`
+	Roles            []Role
+	Uuid             uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 // GetFullname
@@ -80,7 +79,4 @@ func (user *User) SetOrganization(org Organization) {
 }
 func (user User) GetOrganization() Organization {
 	return user.Organization
-}
-func (user *User) SetUuid(uuid string) {
-	user.Uuid = uuid
 }

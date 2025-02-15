@@ -1,13 +1,17 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type IaCArtifact struct {
 	gorm.Model
-	Type   string `json:"type"`
-	Name   string `json:"name"`
-	ScmUrl string `json:"scm_url"`
-	Uuid   string `gorm:"primaryKey" json:"uuid"`
+	ID     uint
+	Type   string    `json:"type"`
+	Name   string    `json:"name"`
+	ScmUrl string    `json:"scm_url"`
+	Uuid   uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (arti IaCArtifact) GetType() string {
@@ -27,7 +31,4 @@ func (arti *IaCArtifact) SetName(name string) {
 }
 func (arti *IaCArtifact) SetSCMurl(url string) {
 	arti.ScmUrl = url
-}
-func (arti *IaCArtifact) SetUuid(uuid string) {
-	arti.Uuid = uuid
 }

@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type EnvVariableType string
 
@@ -11,10 +14,12 @@ const GENERAL EnvVariableType = "general"
 
 type EnvironmentVariable struct {
 	gorm.Model
-	Type  EnvVariableType `json:"type"`
-	Name  string          `json:"name"`
-	Value string          `json:"value"`
-	Uuid  string          `gorm:"primaryKey" json:"uuid"`
+	ID       uint
+	Type     EnvVariableType `json:"type"`
+	Name     string          `json:"name"`
+	Value    string          `json:"value"`
+	Uuid     uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Projects []Project       `json:"projects" gorm:"many2many:project_variables;"`
 }
 
 func CreateEnvironmentVariable(name, value string) EnvironmentVariable {
@@ -34,7 +39,4 @@ func (env *EnvironmentVariable) SetName(name string) {
 }
 func (env *EnvironmentVariable) SetValue(value string) {
 	env.Value = value
-}
-func (env *EnvironmentVariable) SetUuid(uuid string) {
-	env.Uuid = uuid
 }

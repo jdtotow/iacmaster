@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jdtotow/iacmaster/models"
 )
 
@@ -75,7 +74,6 @@ func (s *System) CheckMandatoryTableAndData() error {
 	if org.GetName() != "system" {
 		fmt.Println("The system organization does not exist, it will be created")
 		org.SetName("system")
-		org.SetUuid(uuid.NewString())
 		result := s.dbController.db_client.Create(&org)
 		if result.Error != nil {
 			log.Println(result.Error)
@@ -89,7 +87,6 @@ func (s *System) CheckMandatoryTableAndData() error {
 	if role.GetName() != "system" {
 		log.Println("The system role does not exist, it will be created")
 		role.SetName("system")
-		role.SetUuid(uuid.NewString())
 		result := s.dbController.CreateInstance(&role)
 		if result.Error != nil {
 			log.Println(result.Error)
@@ -103,7 +100,6 @@ func (s *System) CheckMandatoryTableAndData() error {
 	if group.GetName() != "system" {
 		log.Println("The system role does not exist, it will be created")
 		group.SetName("system")
-		group.SetUuid(uuid.NewString())
 		result := s.dbController.CreateInstance(&group)
 		if result.Error != nil {
 			log.Println(result.Error)
@@ -122,7 +118,6 @@ func (s *System) CheckMandatoryTableAndData() error {
 		systemUser.SetUsername("iacmaster")
 		systemUser.AddRole(role)
 		systemUser.SetOrganization(org)
-		systemUser.SetUuid(uuid.NewString())
 		result := s.dbController.CreateInstance(&systemUser)
 		if result.Error != nil {
 			log.Println(result.Error)

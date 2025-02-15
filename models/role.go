@@ -1,11 +1,17 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Role struct {
 	gorm.Model
-	Name string `json:"name"`
-	Uuid string `gorm:"primaryKey" json:"uuid"`
+	ID       uint
+	Name     string `json:"name"`
+	UserUuid uuid.UUID
+	User     User      `gorm:"foreignKey:UserUuid"`
+	Uuid     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (r Role) GetName() string {
@@ -13,8 +19,4 @@ func (r Role) GetName() string {
 }
 func (r *Role) SetName(name string) {
 	r.Name = name
-}
-
-func (r *Role) SetUuid(uuid string) {
-	r.Uuid = uuid
 }

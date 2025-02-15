@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jdtotow/iacmaster/controllers"
 	"github.com/jdtotow/iacmaster/models"
 )
@@ -131,7 +130,6 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			if err != nil {
 				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			}
-			org.SetUuid(uuid.NewString())
 			result := s.dbController.CreateInstance(org)
 			if result.Error == nil {
 				context.IndentedJSON(http.StatusCreated, gin.H{})
@@ -144,7 +142,6 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			if err != nil {
 				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			}
-			user.SetUuid(uuid.NewString())
 			result := s.dbController.CreateInstance(user)
 			if result.Error == nil {
 				context.IndentedJSON(http.StatusCreated, gin.H{})
@@ -157,7 +154,6 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			if err != nil {
 				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			}
-			project.SetUuid(uuid.NewString())
 			result := s.dbController.CreateInstance(project)
 			if result.Error == nil {
 				context.IndentedJSON(http.StatusCreated, gin.H{})
@@ -170,7 +166,6 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			if err != nil {
 				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			}
-			arti.SetUuid(uuid.NewString())
 			result := s.dbController.CreateInstance(arti)
 			if result.Error == nil {
 				context.IndentedJSON(http.StatusCreated, gin.H{})
@@ -183,7 +178,6 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			if err != nil {
 				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			}
-			env.SetUuid(uuid.NewString())
 			result := s.dbController.CreateInstance(env)
 			if result.Error == nil {
 				context.IndentedJSON(http.StatusCreated, gin.H{})
@@ -196,7 +190,6 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			if err != nil {
 				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			}
-			settings.SetUuid(uuid.NewString())
 			result := s.dbController.CreateInstance(settings)
 			if result.Error == nil {
 				context.IndentedJSON(http.StatusCreated, gin.H{})

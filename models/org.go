@@ -1,13 +1,15 @@
 package models
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Organization struct {
 	gorm.Model
-	Name string `gorm:"uniqueIndex" json:"name"`
-	Uuid string `gorm:"primaryKey" json:"uuid"`
+	Name  string    `gorm:"uniqueIndex" json:"name"`
+	Uuid  uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Users []User
 }
 
 func CreateOrganization(name string) Organization {
@@ -21,6 +23,6 @@ func (org *Organization) SetName(name string) {
 func (org *Organization) GetName() string {
 	return org.Name
 }
-func (org *Organization) SetUuid(uuid string) {
-	org.Uuid = uuid
+func (org *Organization) GetUsers() []User {
+	return org.Users
 }

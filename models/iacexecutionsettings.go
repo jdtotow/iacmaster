@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type BackendType string
 
@@ -23,13 +26,14 @@ const GCP DestinationCloud = "gcp"
 
 type IaCExecutionSettings struct {
 	gorm.Model
-	TerraformVersion string                `json:"terraform_version"`
-	BackendType      BackendType           `json:"backend_type"`
-	StateFileStorage StateFileStorage      `json:"state_file_storage"`
-	DestinationCloud DestinationCloud      `json:"destination_cloud"`
-	Credential       CloudCredential       `json:"credential"`
-	Uuid             string                `gorm:"primaryKey" json:"uuid"`
-	Variables        []EnvironmentVariable `json:"variables"`
+	ID               uint
+	TerraformVersion string           `json:"terraform_version"`
+	BackendType      BackendType      `json:"backend_type"`
+	StateFileStorage StateFileStorage `json:"state_file_storage"`
+	DestinationCloud DestinationCloud `json:"destination_cloud"`
+	Credential       CloudCredential  `json:"credential" gorm:"foreignKey:CredentialUuid"`
+	CredentialUuid   uuid.UUID
+	Uuid             uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (i *IaCExecutionSettings) SetTerraformVersion(version string) {
@@ -47,20 +51,4 @@ func (i *IaCExecutionSettings) SetDestinationCloud(destination string) {
 }
 func (i *IaCExecutionSettings) SetCredential(credential CloudCredential) {
 	i.Credential = credential
-}
-func (i *IaCExecutionSettings) SetUuid(uuid string) {
-	i.Uuid = uuid
-}
-func (i IaCExecutionSettings) HasVariable(name string) bool {
-	for _, _var := range i.Variables {
-		if _var.GetName() == name {
-			return true
-		}
-	}
-	return false
-}
-func (i *IaCExecutionSettings) AddVariable(_var EnvironmentVariable) {
-	if !i.HasVariable(_var.Name) {
-		i.Variables = append(i.Variables, _var)
-	}
 }

@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type EnvStatus string
 
@@ -14,15 +17,16 @@ const EnvPending EnvStatus = "pending"
 
 type Environment struct {
 	gorm.Model
+	ID                       uint
 	Name                     string               `json:"name"`
-	Project                  Project              `gorm:"foreignKey:Uuid;references:ProjectUuid" json:"project"`
+	Project                  Project              `gorm:"foreignKey:ProjectUuid" json:"project"`
 	ProjectUuid              string               `json:"projectuuid"`
 	Artifact                 IaCArtifact          `gorm:"foreignKey:Uuid;references:IaCArtifactUuid" json:"artifact"`
-	IaCArtifactUuid          string               `json:"iacartifact_uuid"`
-	ExecSettings             IaCExecutionSettings `gorm:"foreignKey:Uuid;references:IaCExecutionSettingsUuid"`
-	IaCExecutionSettingsUuid string               `json:"iac_execution_settings_uuid"`
+	IaCArtifactUuid          uuid.UUID            `json:"iacartifact_uuid"`
+	ExecSettings             IaCExecutionSettings `gorm:"foreignKey:IaCExecutionSettingsUuid"`
+	IaCExecutionSettingsUuid uuid.UUID            `json:"iac_execution_settings_uuid"`
 	Status                   EnvStatus            `json:"status"`
-	Uuid                     string               `gorm:"primaryKey" json:"uuid"`
+	Uuid                     uuid.UUID            `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (env *Environment) SetName(name string) {
@@ -30,16 +34,4 @@ func (env *Environment) SetName(name string) {
 }
 func (env Environment) GetName() string {
 	return env.Name
-}
-func (env *Environment) SetProject(project Project) {
-	env.Project = project
-}
-func (env *Environment) SetArtifact(arti IaCArtifact) {
-	env.Artifact = arti
-}
-func (env *Environment) SetExecutionSettings(execSettings IaCExecutionSettings) {
-	env.ExecSettings = execSettings
-}
-func (env *Environment) SetUuid(uuid string) {
-	env.Uuid = uuid
 }

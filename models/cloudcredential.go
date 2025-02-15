@@ -1,13 +1,18 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type CloudCredential struct {
 	gorm.Model
-	Name      string                `gorm:"uniqueIndex"`
-	Type      DestinationCloud      `json:"destination_cloud"`
-	Variables []EnvironmentVariable `json:"variables"`
-	Uuid      string                `gorm:"primaryKey" json:"uuid"`
+	ID        uint
+	Name      string                 `gorm:"uniqueIndex"`
+	Type      DestinationCloud       `json:"destination_cloud"`
+	Variables []EnvironmentVariable  `json:"variables"`
+	Uuid      uuid.UUID              `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Settings  []IaCExecutionSettings `json:"settings"`
 }
 
 func (c *CloudCredential) SetType(_type string) {
@@ -34,7 +39,4 @@ func (c CloudCredential) GetCloud(name DestinationCloud) []EnvironmentVariable {
 		}
 	}
 	return result
-}
-func (c *CloudCredential) SetUuid(uuid string) {
-	c.Uuid = uuid
 }

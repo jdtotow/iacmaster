@@ -1,6 +1,4 @@
 # Use postgres/example user/password credentials
-version: '3.9'
-
 services:
 
   db:
@@ -19,7 +17,7 @@ services:
       POSTGRES_USER: iacmaster
       POSTGRES_DB: iacmaster
     ports:
-      - 5432:5432
+      - 5430:5432
 
   adminer:
     image: adminer

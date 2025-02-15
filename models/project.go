@@ -1,16 +1,21 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 // Project structure
 type Project struct {
 	gorm.Model
-	Name         string                `json:"name"`
-	Parent       string                `json:"parent"`
-	Organization Organization          `json:"organization"`
-	VariableUuid string                `json:"variable_uuid"`
-	Variables    []EnvironmentVariable `json:"variables" gorm:"foreignKey:Uuid;references:VariableUuid"`
-	Uuid         string                `gorm:"primaryKey" json:"uuid"`
+	ID               uint
+	Name             string `json:"name"`
+	Parent           string `json:"parent"`
+	OrganizationUuid uuid.UUID
+	Organization     Organization          `json:"organization" gorm:"foreignKey:OrganizationUuid"`
+	Variables        []EnvironmentVariable `json:"variables" gorm:"many2many:project_variables;"`
+	Uuid             uuid.UUID             `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Environments     []Environment
 }
 
 func (project Project) GetName() string {
@@ -21,7 +26,4 @@ func (project Project) GetParent() string {
 }
 func (project Project) GetOrganization() Organization {
 	return project.Organization
-}
-func (project *Project) SetUuid(uuid string) {
-	project.Uuid = uuid
 }
