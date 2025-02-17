@@ -6,17 +6,16 @@ import (
 )
 
 // User Group structure
-type UserGroup struct {
+type Group struct {
 	gorm.Model
-	ID    uint
 	Name  string    `gorm:"uniqueIndex"`
-	Uuid  uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ID    uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Users []User    `gorm:"many2many:user_groups;"`
 }
 
-func (group UserGroup) GetName() string {
+func (group Group) GetName() string {
 	return group.Name
 }
-func (group *UserGroup) SetName(name string) {
+func (group *Group) SetName(name string) {
 	group.Name = name
 }

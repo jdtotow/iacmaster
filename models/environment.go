@@ -17,16 +17,15 @@ const EnvPending EnvStatus = "pending"
 
 type Environment struct {
 	gorm.Model
-	ID                       uint
-	Name                     string               `json:"name"`
-	Project                  Project              `gorm:"foreignKey:ProjectUuid" json:"project"`
-	ProjectUuid              string               `json:"projectuuid"`
-	Artifact                 IaCArtifact          `gorm:"foreignKey:Uuid;references:IaCArtifactUuid" json:"artifact"`
-	IaCArtifactUuid          uuid.UUID            `json:"iacartifact_uuid"`
-	ExecSettings             IaCExecutionSettings `gorm:"foreignKey:IaCExecutionSettingsUuid"`
-	IaCExecutionSettingsUuid uuid.UUID            `json:"iac_execution_settings_uuid"`
-	Status                   EnvStatus            `json:"status"`
-	Uuid                     uuid.UUID            `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name                     string  `json:"name"`
+	Project                  Project `json:"project"`
+	ProjectID                uuid.UUID
+	IaCArtifact              IaCArtifact `json:"iac_artifact"`
+	IaCArtifactID            uuid.UUID
+	ExecSettings             IaCExecutionSettings
+	IaCExecutionSettingsUuid uuid.UUID `json:"iac_execution_settings_uuid"`
+	Status                   EnvStatus `json:"status"`
+	ID                       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (env *Environment) SetName(name string) {

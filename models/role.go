@@ -7,11 +7,10 @@ import (
 
 type Role struct {
 	gorm.Model
-	ID       uint
-	Name     string `json:"name"`
-	UserUuid uuid.UUID
-	User     User      `gorm:"foreignKey:UserUuid"`
-	Uuid     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name   string `json:"name"`
+	UserID uuid.UUID
+	User   User
+	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (r Role) GetName() string {

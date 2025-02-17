@@ -33,6 +33,7 @@ func getSupportedEnpoint() []string {
 		"/organization",
 		"/iacartifact",
 		"/variable",
+		"/cloudcredential",
 	}
 }
 
@@ -77,12 +78,12 @@ func (s *Server) Start() error {
 	s.router.POST("/", s.homePage)
 
 	for _, path := range s.supportedEndpoint {
-		s.router.GET(path, s.skittlesMan)             // get all entries
-		s.router.GET(path+"/:uuid", s.skittlesMan)    // get one identify by uuid
-		s.router.DELETE(path+"/:uuid", s.skittlesMan) // delete one identify by uuid
-		s.router.POST(path, s.skittlesMan)            // create new one
-		s.router.PATCH(path+"/:uuid", s.skittlesMan)  //edit one field of the entry identify by uuid
-		s.router.PUT(path+"/:uuid", s.skittlesMan)    //replace the entiere object identify by uuid
+		s.router.GET(path, s.skittlesMan)           // get all entries
+		s.router.GET(path+"/:id", s.skittlesMan)    // get one identify by uuid
+		s.router.DELETE(path+"/:id", s.skittlesMan) // delete one identify by uuid
+		s.router.POST(path, s.skittlesMan)          // create new one
+		s.router.PATCH(path+"/:id", s.skittlesMan)  //edit one field of the entry identify by uuid
+		s.router.PUT(path+"/:id", s.skittlesMan)    //replace the entiere object identify by uuid
 	}
 	log.Println("Starting api server ...")
 	err := s.router.Run(url)
@@ -200,6 +201,64 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			context.IndentedJSON(http.StatusNotFound, gin.H{"error": "object handler not found"})
 		}
 	} else if context.Request.Method == "GET" {
+		id := context.Param("id")
+		if objectName == "organization" {
+			if id == "" {
+				orgs := []models.Organization{}
+				result := s.dbController.GetAll(&orgs)
+				if result.Error != nil {
+					context.IndentedJSON(http.StatusNotFound, gin.H{})
+					return
+				}
+				context.JSON(http.StatusOK, orgs)
+			} else {
+				org := models.Organization{}
+				result := s.dbController.GetObjectByID(&org, id)
+				if result.Error != nil {
+					context.IndentedJSON(http.StatusNotFound, gin.H{})
+					return
+				}
+				context.JSON(http.StatusOK, org)
+			}
+		} else if objectName == "user" {
+			if id == "" {
+				users := []models.User{}
+				result := s.dbController.GetAll(&users)
+				if result.Error != nil {
+					context.IndentedJSON(http.StatusNotFound, gin.H{})
+					return
+				}
+				context.JSON(http.StatusOK, users)
+			} else {
+				user := models.User{}
+				result := s.dbController.GetObjectByID(&user, id)
+				if result.Error != nil {
+					context.IndentedJSON(http.StatusNotFound, gin.H{})
+					return
+				}
+				context.JSON(http.StatusOK, user)
+			}
+		} else if objectName == "project" {
+			if id == "" {
+				projects := []models.Project{}
+				result := s.dbController.GetAll(&projects)
+				if result.Error != nil {
+					context.IndentedJSON(http.StatusNotFound, gin.H{})
+					return
+				}
+				context.JSON(http.StatusOK, projects)
+			} else {
+				project := models.Project{}
+				result := s.dbController.GetObjectByID(&project, id)
+				if result.Error != nil {
+					context.IndentedJSON(http.StatusNotFound, gin.H{})
+					return
+				}
+				context.JSON(http.StatusOK, project)
+			}
+		} else {
+
+		}
 
 	} else if context.Request.Method == "PUT" {
 

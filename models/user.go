@@ -7,15 +7,15 @@ import (
 
 type User struct {
 	gorm.Model
-	Fullname         string `json:"fullname"`
-	Email            string `gorm:"uniqueIndex"`
-	Username         string `gorm:"uniqueIndex" json:"username"`
-	Password         string `json:"password"`
-	OrganizationUuid uuid.UUID
-	Organization     Organization `json:"organization" gorm:"foreignKey:OrganizationUuid"`
-	Groups           []UserGroup  `json:"groups" gorm:"many2many:user_groups;"`
-	Roles            []Role
-	Uuid             uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Fullname       string `json:"fullname"`
+	Email          string `gorm:"uniqueIndex"`
+	Username       string `gorm:"uniqueIndex" json:"username"`
+	Password       string `json:"password"`
+	OrganizationID uuid.UUID
+	Organization   Organization `json:"organization"`
+	Groups         []Group      `json:"groups" gorm:"many2many:user_groups;"`
+	Roles          []Role
+	ID             uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 // GetFullname
@@ -45,12 +45,12 @@ func (user *User) SetUsername(username string) {
 func (user *User) SetPassword(password string) {
 	user.Password = password
 }
-func (user *User) AssignToGroup(group UserGroup) {
+func (user *User) AssignToGroup(group Group) {
 	if !user.IsMemberOfGroup(group) {
 		user.Groups = append(user.Groups, group)
 	}
 }
-func (user User) IsMemberOfGroup(group UserGroup) bool {
+func (user User) IsMemberOfGroup(group Group) bool {
 	for _, _group := range user.Groups {
 		if _group.Name == group.Name {
 			return true

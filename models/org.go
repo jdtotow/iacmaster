@@ -7,9 +7,10 @@ import (
 
 type Organization struct {
 	gorm.Model
-	Name  string    `gorm:"uniqueIndex" json:"name"`
-	Uuid  uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Users []User
+	Name      string            `gorm:"uniqueIndex" json:"name"`
+	ID        uuid.UUID         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Variables map[string]string `json:"variables" gorm:"type:jsonb"`
+	Users     []User
 }
 
 func CreateOrganization(name string) Organization {

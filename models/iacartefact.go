@@ -7,11 +7,10 @@ import (
 
 type IaCArtifact struct {
 	gorm.Model
-	ID     uint
 	Type   string    `json:"type"`
 	Name   string    `json:"name"`
 	ScmUrl string    `json:"scm_url"`
-	Uuid   uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (arti IaCArtifact) GetType() string {

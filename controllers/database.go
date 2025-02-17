@@ -40,3 +40,9 @@ func (db *DBController) UpdateInstance(model interface{}) *gorm.DB {
 func (db *DBController) Delete(model interface{}) *gorm.DB {
 	return db.db_client.Delete(model)
 }
+func (db *DBController) GetAll(models interface{}) *gorm.DB {
+	return db.db_client.Find(models)
+}
+func (db *DBController) GetObjectByID(model interface{}, id string) *gorm.DB {
+	return db.db_client.First(model, "id = ? ", id)
+}

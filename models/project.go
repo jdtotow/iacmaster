@@ -8,14 +8,13 @@ import (
 // Project structure
 type Project struct {
 	gorm.Model
-	ID               uint
-	Name             string `json:"name"`
-	Parent           string `json:"parent"`
-	OrganizationUuid uuid.UUID
-	Organization     Organization          `json:"organization" gorm:"foreignKey:OrganizationUuid"`
-	Variables        []EnvironmentVariable `json:"variables" gorm:"many2many:project_variables;"`
-	Uuid             uuid.UUID             `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Environments     []Environment
+	Name           string `json:"name"`
+	Parent         string `json:"parent"`
+	OrganizationID uuid.UUID
+	Organization   Organization      `json:"organization"`
+	Variables      map[string]string `json:"variables" gorm:"type:jsonb"`
+	Uuid           uuid.UUID         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Environments   []Environment
 }
 
 func (project Project) GetName() string {
