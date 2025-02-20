@@ -69,21 +69,34 @@ func (s *System) UpdateTableSchema() {
 	s.dbController.db_client.AutoMigrate(
 		&models.User{},
 		&models.Role{},
-		//&models.Project{},
+		&models.Project{},
+		&models.Token{},
+		&models.IaCSystem{},
 		&models.Organization{},
-		//&models.IaCExecutionSettings{},
-		//&models.IaCArtifact{},
+		&models.IaCExecutionSettings{},
+		&models.IaCArtifact{},
 		&models.Group{},
-		//&models.Environment{},
-		//&models.CloudCredential{},
+		&models.Environment{},
+		&models.CloudCredential{},
 	)
 }
-func (s *System) CheckMandatoryTableAndData() error {
-	//Verify the system organization
+func (s *System) CreateTablesAndMandatoryData() error {
+	if s.CheckMandatoryTableAndData() {
+		return nil
+	}
+	s.UpdateTableSchema()
+	sys := models.IaCSystem{
+		Name: "IaCSystem",
+	}
+	result := s.dbController.db_client.Create(&sys)
+	if result.Error != nil {
+		log.Println(result.Error)
+		return result.Error
+	}
 	org := models.Organization{
 		Name: "system",
 	}
-	result := s.dbController.db_client.Create(&org)
+	result = s.dbController.db_client.Create(&org)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return result.Error
@@ -110,8 +123,6 @@ func (s *System) CheckMandatoryTableAndData() error {
 	if result.Error != nil {
 		log.Println(result.Error)
 		return result.Error
-	} else {
-		log.Println("Role system stored")
 	}
 	group := models.Group{
 		Name: "system",
@@ -126,14 +137,17 @@ func (s *System) CheckMandatoryTableAndData() error {
 	//
 	return nil
 }
+func (s *System) CheckMandatoryTableAndData() bool {
+	return s.dbController.db_client.Migrator().HasTable("ia_c_systems")
+}
 
 func (s *System) Start() {
 	if s.node.Type == models.Primary {
-		//s.UpdateTableSchema()
-		//err := s.CheckMandatoryTableAndData()
-		//if err != nil {
-		//	log.Fatal("Cannot continue, missing mandatory data")
-		//}
+
+		err := s.CreateTablesAndMandatoryData()
+		if err != nil {
+			log.Fatal("Cannot continue, missing mandatory data")
+		}
 		//
 		log.Println("IaC Master logic started !")
 		var message models.HTTPMessage

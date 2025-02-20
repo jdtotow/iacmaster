@@ -7,11 +7,13 @@ import (
 
 type CloudCredential struct {
 	gorm.Model
-	Name      string                 `gorm:"uniqueIndex"`
-	Type      DestinationCloud       `json:"destination_cloud"`
-	Variables map[string]string      `json:"variables" gorm:"type:jsonb"`
-	ID        uuid.UUID              `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Settings  []IaCExecutionSettings `json:"settings"`
+	Name                 string                 `json:"name" gorm:"uniqueIndex"`
+	Type                 DestinationCloud       `json:"destination_cloud"`
+	Variables            map[string]string      `json:"variables" gorm:"type:jsonb;serializer:json"`
+	ID                   uuid.UUID              `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	IaCExecutionSettings []IaCExecutionSettings `json:"settings"`
+	Project              Project                `json:"project"`
+	ProjectID            uuid.UUID              `json:"project_id"`
 }
 
 func (c *CloudCredential) SetType(_type string) {

@@ -28,7 +28,13 @@ func getSupportedEnpoint() []string {
 		"/user",
 		"/group",
 		"/project",
+		"/organization",
+		"/iacartifact",
 		"role",
+		"/token",
+		"/cloudcredential",
+		"/environment",
+		"/settings",
 	}
 }
 
@@ -140,7 +146,7 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			}
 			result := s.dbController.CreateInstance(org)
 			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{})
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": org.ID})
 			} else {
 				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			}
@@ -164,7 +170,19 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			}
 			result := s.dbController.CreateInstance(project)
 			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{})
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": project.ID})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
+		} else if objectName == "token" {
+			var token *models.Token = &models.Token{}
+			err := context.BindJSON(token)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			result := s.dbController.CreateInstance(token)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": token.ID})
 			} else {
 				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			}
@@ -176,7 +194,7 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			}
 			result := s.dbController.CreateInstance(arti)
 			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{})
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": arti.ID})
 			} else {
 				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			}
@@ -188,7 +206,7 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			}
 			result := s.dbController.CreateInstance(env)
 			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{})
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": env.ID})
 			} else {
 				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			}
@@ -200,7 +218,19 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 			}
 			result := s.dbController.CreateInstance(settings)
 			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{})
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": settings.ID})
+			} else {
+				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+			}
+		} else if objectName == "cloudcredential" {
+			var credential *models.CloudCredential = &models.CloudCredential{}
+			err := context.BindJSON(credential)
+			if err != nil {
+				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			}
+			result := s.dbController.CreateInstance(credential)
+			if result.Error == nil {
+				context.IndentedJSON(http.StatusCreated, gin.H{"id": credential.ID})
 			} else {
 				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			}
