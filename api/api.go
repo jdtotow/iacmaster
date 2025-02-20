@@ -28,12 +28,7 @@ func getSupportedEnpoint() []string {
 		"/user",
 		"/group",
 		"/project",
-		"/settings",
-		"/environment",
-		"/organization",
-		"/iacartifact",
-		"/variable",
-		"/cloudcredential",
+		"role",
 	}
 }
 
@@ -76,6 +71,17 @@ func (s *Server) Start() error {
 
 	s.router.GET("/", s.homePage)
 	s.router.POST("/", s.homePage)
+
+	/*
+		"/settings",
+			"/environment",
+			"/organization",
+			"/iacartifact",
+			"/variable",
+			"/cloudcredential",
+	*/
+	//s.router.POST("/environment/:id/settings", s.createSettings)
+	//s.router.GET("/environment/:id/settings/*setting_id", s.getSettings)
 
 	for _, path := range s.supportedEndpoint {
 		s.router.GET(path, s.skittlesMan)           // get all entries
@@ -122,6 +128,7 @@ func (s *Server) skittlesMan(context *gin.Context) {
 	}
 	context.IndentedJSON(http.StatusNotFound, gin.H{})
 }
+
 func (s *Server) Handle(context *gin.Context, objectName string) {
 	if context.Request.Method == "POST" {
 		if objectName == "organization" {
@@ -257,7 +264,7 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 				context.JSON(http.StatusOK, project)
 			}
 		} else {
-
+			context.IndentedJSON(http.StatusNotFound, gin.H{})
 		}
 
 	} else if context.Request.Method == "PUT" {

@@ -26,15 +26,15 @@ const GCP DestinationCloud = "gcp"
 
 type IaCExecutionSettings struct {
 	gorm.Model
-	ID                  uint
-	TerraformVersion    string            `json:"terraform_version"`
-	BackendType         BackendType       `json:"backend_type"`
-	StateFileStorage    StateFileStorage  `json:"state_file_storage"`
-	DestinationCloud    DestinationCloud  `json:"destination_cloud"`
-	CloudCredential     CloudCredential   `json:"credential" gorm:"foreignKey:CloudCredentialUuid"`
-	Variables           map[string]string `json:"variables" gorm:"type:jsonb"`
-	CloudCredentialUuid uuid.UUID
-	Uuid                uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ID                uint
+	TerraformVersion  string            `json:"terraform_version"`
+	BackendType       BackendType       `json:"backend_type"`
+	StateFileStorage  StateFileStorage  `json:"state_file_storage"`
+	DestinationCloud  DestinationCloud  `json:"destination_cloud"`
+	CloudCredential   CloudCredential   `json:"credential"`
+	Variables         map[string]string `json:"variables" gorm:"type:jsonb"`
+	CloudCredentialID uuid.UUID
+	Uuid              uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (i *IaCExecutionSettings) SetTerraformVersion(version string) {
