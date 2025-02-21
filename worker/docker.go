@@ -6,8 +6,8 @@ type DockerRunner struct {
 	Status JobStatus
 }
 
-func CreateDockerRunner(name string) *DockerRunner {
-	return &DockerRunner{
+func CreateDockerRunner(name string) DockerRunner {
+	return DockerRunner{
 		Name:   name,
 		Type:   "docker",
 		Status: "init",
@@ -22,14 +22,14 @@ func (d DockerRunner) GetType() string {
 	return d.Type
 }
 
-func (d DockerRunner) GetJobStatus() string {
-	return string(d.Status)
+func (d DockerRunner) GetJobStatus() JobStatus {
+	return d.Status
 }
 
-func (d *DockerRunner) StartJob() error {
+func (d DockerRunner) StartJob() error {
 	return nil
 }
 
-func (d *DockerRunner) StopJob() error {
+func (d DockerRunner) StopJob() error {
 	return nil
 }

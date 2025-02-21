@@ -6,8 +6,8 @@ type KubernetesRunner struct {
 	Status JobStatus
 }
 
-func CreateKubernetesRunner(name string) *KubernetesRunner {
-	return &KubernetesRunner{
+func CreateKubernetesRunner(name string) KubernetesRunner {
+	return KubernetesRunner{
 		Name:   name,
 		Type:   "kubernetes",
 		Status: "init",
@@ -22,14 +22,14 @@ func (d KubernetesRunner) GetType() string {
 	return d.Type
 }
 
-func (d KubernetesRunner) GetJobStatus() string {
-	return string(d.Status)
+func (d KubernetesRunner) GetJobStatus() JobStatus {
+	return d.Status
 }
 
-func (d *KubernetesRunner) StartJob() error {
+func (d KubernetesRunner) StartJob() error {
 	return nil
 }
 
-func (d *KubernetesRunner) StopJob() error {
+func (d KubernetesRunner) StopJob() error {
 	return nil
 }
