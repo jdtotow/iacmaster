@@ -1,9 +1,10 @@
 package worker
 
 type KubernetesRunner struct {
-	Name   string
-	Type   string
-	Status JobStatus
+	Name       string
+	Type       string
+	Status     JobStatus
+	CurrentJob JobData
 }
 
 func CreateKubernetesRunner(name string) KubernetesRunner {
@@ -32,4 +33,14 @@ func (d KubernetesRunner) StartJob() error {
 
 func (d KubernetesRunner) StopJob() error {
 	return nil
+}
+
+func (d KubernetesRunner) SetJobInfo(info JobData) {
+
+}
+
+func (d KubernetesRunner) GetWorkerInfo() WorkerInfo {
+	return WorkerInfo{
+		hostname: "localhost",
+	}
 }

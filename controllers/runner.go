@@ -7,7 +7,7 @@ import (
 type Runner struct {
 }
 
-func (r *Runner) Start(name, _type string) worker.Worker {
+func (r *Runner) Create(name, _type string) worker.Worker {
 	if _type == "kubernetes" {
 		return worker.CreateKubernetesRunner(name)
 	} else {

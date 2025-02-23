@@ -7,14 +7,16 @@ import (
 	"time"
 
 	"github.com/jdtotow/iacmaster/models"
+	"github.com/jdtotow/iacmaster/worker"
 )
 
 type System struct {
-	node         *models.Node
-	dbController *DBController
-	seController *SecurityController
-	channel      *chan models.HTTPMessage
-	peers        []*models.Node
+	node               *models.Node
+	dbController       *DBController
+	seController       *SecurityController
+	artifactController *IaCArtifactController
+	channel            *chan models.HTTPMessage
+	peers              []*models.Node
 }
 
 func CreatePeers(settings, myName string) []*models.Node {
@@ -58,11 +60,12 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 		Status: models.NodeStatus("init"),
 	}
 	return &System{
-		node:         n,
-		dbController: CreateDBController(),
-		seController: CreateSecurityController(),
-		channel:      channel,
-		peers:        CreatePeers(clusterSetting, nodeName),
+		node:               n,
+		dbController:       CreateDBController(),
+		seController:       CreateSecurityController(),
+		artifactController: CreateIaCArtifactController("./tmp"),
+		channel:            channel,
+		peers:              CreatePeers(clusterSetting, nodeName),
 	}
 }
 func (s *System) UpdateTableSchema() {
@@ -162,4 +165,32 @@ func (s *System) Start() {
 
 func (s *System) Handle(message models.HTTPMessage) {
 	log.Println("message -> ", message)
+	if message.Metadata["action"] == "create_env" {
+		env := models.Environment{}
+		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", message.Metadata["object_id"])
+		if env.Name == "" {
+			log.Println("Object not found")
+			return
+		}
+		log.Println("Preparing deployment with ", env.IaCExecutionSettings.TerraformVersion)
+		//err := s.artifactController.GetRepo(env.IaCArtifact.ScmUrl, env.IaCExecutionSettings.Token.Token, message.Metadata["object_id"])
+		//if err != nil {
+		//	log.Println("Could not clone git repo")
+		//	return
+		//}
+		// create worker
+		runner := &Runner{}
+		docker_worker := runner.Create("default", "docker")
+		docker_image := ""
+		if env.IaCArtifact.Type == "terraform" {
+			docker_image = "iacmaster_worker:latest"
+		}
+		info := worker.JobData{
+			VolumePath:            "/Users/jean-didier/Projects/IaCMaster",
+			EnvironmentID:         message.Metadata["object_id"],
+			EnvironmentParameters: env.IaCExecutionSettings.Variables,
+			DockerImage:           docker_image,
+		}
+		docker_worker.SetJobInfo(info)
+	}
 }

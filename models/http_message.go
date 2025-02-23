@@ -10,6 +10,7 @@ type HTTPMessage struct {
 	Body          io.ReadCloser
 	Method        string
 	Params        map[string][]string
+	Metadata      map[string]string
 }
 
 func (m HTTPMessage) String() string {

@@ -97,6 +97,8 @@ func (s *Server) Start() error {
 		s.router.PATCH(path+"/:id", s.skittlesMan)  //edit one field of the entry identify by uuid
 		s.router.PUT(path+"/:id", s.skittlesMan)    //replace the entiere object identify by uuid
 	}
+	s.router.POST("/environment/:id/*action", s.deployEnvironment)
+
 	log.Println("Starting api server ...")
 	err := s.router.Run(url)
 	return err
@@ -118,6 +120,10 @@ func (s *Server) skittlesMan(context *gin.Context) {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
 			token, _ := context.Cookie("Authorization")
+			metadata := map[string]string{
+				"action":    "no_action",
+				"object_id": "no",
+			}
 			s.Handle(context, objectName)
 			message := models.HTTPMessage{
 				ObjectName:    objectName,
@@ -127,6 +133,7 @@ func (s *Server) skittlesMan(context *gin.Context) {
 				Token:         token,
 				Body:          context.Request.Body,
 				Params:        context.Request.URL.Query(),
+				Metadata:      metadata,
 			}
 			*s.channel <- message
 			return
@@ -305,5 +312,38 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 
 	} else {
 		context.IndentedJSON(http.StatusMethodNotAllowed, gin.H{})
+	}
+}
+
+func (s *Server) deployEnvironment(context *gin.Context) {
+	id := context.Param("id")
+	action := context.Param("action")
+	env := models.Environment{}
+	result := s.dbController.GetObjectByID(&env, id)
+	if result.Error != nil {
+		context.IndentedJSON(http.StatusNotFound, gin.H{})
+		return
+	}
+	if action == "/deploy" {
+		log.Println("Deployment of the environment with ID", id)
+		metadata := map[string]string{
+			"action":    "create_env",
+			"object_id": id,
+		}
+		message := models.HTTPMessage{
+			ObjectName:    "envronment",
+			RequestOrigin: context.ClientIP(),
+			Method:        context.Request.Method,
+			Url:           context.Request.RequestURI,
+			Token:         "-",
+			Body:          context.Request.Body,
+			Params:        context.Request.URL.Query(),
+			Metadata:      metadata,
+		}
+		*s.channel <- message
+	} else if action == "/clean" {
+
+	} else {
+
 	}
 }

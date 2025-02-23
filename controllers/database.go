@@ -31,6 +31,9 @@ func CreateDBController() *DBController {
 		db_client: db,
 	}
 }
+func (db *DBController) GetClient() *gorm.DB {
+	return db.db_client
+}
 func (db *DBController) CreateInstance(model interface{}) *gorm.DB {
 	return db.db_client.Create(model)
 }
