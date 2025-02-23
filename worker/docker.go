@@ -52,15 +52,14 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 	defer cli.Close()
 	ctx := context.Background()
 	parameters := []string{}
-	parameters = append(parameters, "TERRAFORM_VERSION=1.9.4")
-	parameters = append(parameters, "WORKING_DIR="+"/tmp/a903256d-5b23-4223-b4e0-00be3863fd1d")
+	parameters = append(parameters, "TERRAFORM_VERSION="+data.TerraformVersion)
+	parameters = append(parameters, "WORKING_DIR="+data.WorkingDir)
+
 	for name, value := range data.EnvironmentParameters {
 		parameters = append(parameters, name+"="+value)
 	}
 	commands := []string{}
 	commands = append(commands, "/app/entrypoint.sh")
-	//commands = append(commands, "terraform -chdir /tmp/"+data.EnvironmentID+" plan && ")
-	//commands = append(commands, "terraform -chdir /tmp/"+data.EnvironmentID+" apply")
 
 	containerConfig := &container.Config{
 		Image: data.DockerImage,
@@ -71,8 +70,8 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 		Mounts: []mount.Mount{ // Define volume mounts
 			{
 				Type:   mount.TypeBind,
-				Source: data.VolumePath,                             // Change this to a valid host path
-				Target: "/tmp/a903256d-5b23-4223-b4e0-00be3863fd1d", // Mount point inside container
+				Source: data.VolumePath, // Change this to a valid host path
+				Target: data.WorkingDir, // Mount point inside container
 			},
 			{
 				Type:   mount.TypeBind,

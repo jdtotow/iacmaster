@@ -190,6 +190,8 @@ func (s *System) Handle(message models.HTTPMessage) {
 			EnvironmentID:         message.Metadata["object_id"],
 			EnvironmentParameters: env.IaCExecutionSettings.Variables,
 			DockerImage:           docker_image,
+			TerraformVersion:      env.IaCExecutionSettings.TerraformVersion,
+			WorkingDir:            "/tmp/" + message.Metadata["object_id"],
 		}
 		docker_worker.SetJobInfo(info)
 	}

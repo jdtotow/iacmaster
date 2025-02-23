@@ -14,6 +14,8 @@ type JobData struct {
 	VolumePath            string
 	EnvironmentParameters map[string]string
 	DockerImage           string
+	TerraformVersion      string
+	WorkingDir            string
 }
 
 type WorkerInfo struct {
