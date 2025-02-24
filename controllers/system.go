@@ -173,11 +173,11 @@ func (s *System) Handle(message models.HTTPMessage) {
 			return
 		}
 		log.Println("Preparing deployment with ", env.IaCExecutionSettings.TerraformVersion)
-		//err := s.artifactController.GetRepo(env.IaCArtifact.ScmUrl, env.IaCExecutionSettings.Token.Token, message.Metadata["object_id"])
-		//if err != nil {
-		//	log.Println("Could not clone git repo")
-		//	return
-		//}
+		err := s.artifactController.GetRepo(env.IaCArtifact.ScmUrl, env.IaCExecutionSettings.Token.Token, message.Metadata["object_id"])
+		if err != nil {
+			log.Println("Could not clone git repo")
+			return
+		}
 		// create worker
 		runner := &Runner{}
 		docker_worker := runner.Create("default", "docker")
@@ -186,12 +186,12 @@ func (s *System) Handle(message models.HTTPMessage) {
 			docker_image = "iacmaster_worker:latest"
 		}
 		info := worker.JobData{
-			VolumePath:            "/Users/jean-didier/Projects/IaCMaster",
+			VolumePath:            "/Users/swisscom/Projects/iacmaster/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
 			EnvironmentID:         message.Metadata["object_id"],
 			EnvironmentParameters: env.IaCExecutionSettings.Variables,
 			DockerImage:           docker_image,
 			TerraformVersion:      env.IaCExecutionSettings.TerraformVersion,
-			WorkingDir:            "/tmp/" + message.Metadata["object_id"],
+			WorkingDir:            "/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
 		}
 		docker_worker.SetJobInfo(info)
 	}

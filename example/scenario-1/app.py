@@ -20,8 +20,9 @@ project_id = json.loads(result.text)["id"]
 artifact_data = {
     "name": "vpn-to-vpn",
     "type": "terraform",
-    "scm_url": "https://github.com/jdtotow/vpn",
-    "home_folder": ".",
+    "scm_url": "https://github.com/futurice/terraform-examples",
+    "revision": "master",
+    "home_folder": "azure/azure_linux_docker_app_service",
     "project_id": project_id
 }
 
@@ -58,7 +59,7 @@ print(result.text)
 credential_id = json.loads(result.text)["id"]
 
 setting_data = {
-    "terraform_version": "1.7.5",
+    "terraform_version": "1.9.4",
     "backend_type": "local",
     "state_file_storage": "local",
     "destination_cloud": "azure",

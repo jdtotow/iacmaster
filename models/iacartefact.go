@@ -11,6 +11,7 @@ type IaCArtifact struct {
 	Name       string    `json:"name"`
 	ScmUrl     string    `json:"scm_url"`
 	HomeFolder string    `json:"home_folder"`
+	Revision   string    `json:"revision"`
 	ID         uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Project    Project
 	ProjectID  uuid.UUID `json:"project_id"`

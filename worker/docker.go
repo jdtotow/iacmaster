@@ -2,7 +2,9 @@ package worker
 
 import (
 	"context"
+	"io"
 	"log"
+	"os"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -55,6 +57,8 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 	parameters = append(parameters, "TERRAFORM_VERSION="+data.TerraformVersion)
 	parameters = append(parameters, "WORKING_DIR="+data.WorkingDir)
 
+	log.Println("Working dir -> ", data.WorkingDir)
+
 	for name, value := range data.EnvironmentParameters {
 		parameters = append(parameters, name+"="+value)
 	}
@@ -73,32 +77,45 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 				Source: data.VolumePath, // Change this to a valid host path
 				Target: data.WorkingDir, // Mount point inside container
 			},
-			{
-				Type:   mount.TypeBind,
-				Source: "/Users/jean-didier/Projects/IaCMaster/script",
-				Target: "/app",
-			},
 		},
 		RestartPolicy: container.RestartPolicy{Name: "always"},
 	}
-	/*
-		_, err = cli.ImagePull(ctx, data.DockerImage, image.PullOptions{})
-		if err != nil {
-			log.Fatalf("Error pulling image: %v", err)
-		}
-		fmt.Println("Image pulled successfully!")
-	*/
+
+	//_, err = cli.ImagePull(ctx, data.DockerImage, image.PullOptions{})
+	//if err != nil {
+	//	log.Fatalf("Error pulling image: %v", err)
+	//}
+	//fmt.Println("Image pulled successfully!")
 
 	// Create the container
 	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, "docker-worker-terraform")
 	if err != nil {
 		log.Fatalf("Error creating container: %v", err)
 	}
+	//Logs management
+	options := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+		Tail:       "all", // Retrieve the last 10 lines; set to "all" to get all logs
+	}
 
 	// Start the container
 	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		log.Fatalf("Error starting container: %v", err)
 	}
+
+	out, err := cli.ContainerLogs(context.Background(), resp.ID, options)
+	if err != nil {
+		log.Fatalf("Error retrieving container logs: %v", err)
+	}
+	defer out.Close()
+
+	_, err = io.Copy(os.Stdout, out)
+	if err != nil {
+		log.Fatalf("Error reading container logs: %v", err)
+	}
+
 }
 
 func (d DockerRunner) GetWorkerInfo() WorkerInfo {
