@@ -7,8 +7,10 @@ import (
 
 type TerraformValue struct {
 	gorm.Model
-	ID    uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Name  string    `json:"name"`
-	Type  string    `json:"type"`
-	Value []byte    `json:"value" gorm:"type:jsonb;serializer:json"`
+	ID            uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name          string    `json:"name"`
+	Type          string    `json:"type"`
+	Value         []byte    `json:"value" gorm:"type:jsonb;serializer:json"`
+	Environment   Environment
+	EnvironmentID uuid.UUID `json:"environment_id"`
 }

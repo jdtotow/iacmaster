@@ -26,6 +26,7 @@ type Environment struct {
 	IaCExecutionSettingsID uuid.UUID `json:"iac_execution_settings_id"`
 	Status                 EnvStatus `json:"status"`
 	ID                     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	TerraformValue         []TerraformValue
 }
 
 func (env *Environment) SetName(name string) {
