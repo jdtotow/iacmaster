@@ -57,8 +57,6 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 	parameters = append(parameters, "TERRAFORM_VERSION="+data.TerraformVersion)
 	parameters = append(parameters, "WORKING_DIR="+data.WorkingDir)
 
-	log.Println("Working dir -> ", data.WorkingDir)
-
 	for name, value := range data.EnvironmentParameters {
 		parameters = append(parameters, name+"="+value)
 	}

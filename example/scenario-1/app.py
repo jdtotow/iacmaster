@@ -34,7 +34,8 @@ artifact_id = json.loads(result.text)["id"]
 token_data = {
     "name": "test",
     "type": "git",
-    "token": "c1876cdd21d43cd460fe1a3cb4bc5d0847018cee3a33744bfdf0b57ecff2f53f059",
+    "username": "jd",
+    "token": "",
     "project_id": project_id
 }
 
@@ -81,3 +82,17 @@ env_data = {
 
 result = requests.post(iacmaster_url+"/environment", json.dumps(env_data), headers=headers)
 print(result.text)
+environment_id = json.loads(result.text)["id"]
+
+values = [
+    {
+        "name": "email",
+        "type": "string",
+        "value": "jdtotow@gmail.com"
+    },
+    {
+        "name": "addresses",
+        "type": "list",
+        "value": ["athens","bern","arras"]
+    }
+]

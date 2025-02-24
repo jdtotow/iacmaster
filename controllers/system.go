@@ -173,7 +173,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 			return
 		}
 		log.Println("Preparing deployment with ", env.IaCExecutionSettings.TerraformVersion)
-		err := s.artifactController.GetRepo(env.IaCArtifact.ScmUrl, env.IaCExecutionSettings.Token.Token, message.Metadata["object_id"])
+		err := s.artifactController.GetRepo(env.IaCArtifact.ScmUrl, env.IaCExecutionSettings.Token.Token, env.IaCExecutionSettings.Token.Username, env.IaCArtifact.Revision, env.IaCArtifact.ProxyUrl, env.IaCArtifact.ProxyUsername, env.IaCArtifact.ProxyPassword, message.Metadata["object_id"])
 		if err != nil {
 			log.Println("Could not clone git repo")
 			return
@@ -185,8 +185,9 @@ func (s *System) Handle(message models.HTTPMessage) {
 		if env.IaCArtifact.Type == "terraform" {
 			docker_image = "iacmaster_worker:latest"
 		}
+		pwd, _ := os.Getwd()
 		info := worker.JobData{
-			VolumePath:            "/Users/swisscom/Projects/iacmaster/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
+			VolumePath:            pwd + "/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
 			EnvironmentID:         message.Metadata["object_id"],
 			EnvironmentParameters: env.IaCExecutionSettings.Variables,
 			DockerImage:           docker_image,

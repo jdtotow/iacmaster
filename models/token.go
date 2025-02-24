@@ -16,6 +16,7 @@ type Token struct {
 	Name                 string                 `json:"name"`
 	Type                 TokenType              `json:"type"`
 	Token                string                 `json:"token"`
+	Username             string                 `json:"username"`
 	Project              Project                `json:"project"`
 	ProjectID            uuid.UUID              `json:"project_id"`
 	IaCExecutionSettings []IaCExecutionSettings `json:"settings"`
