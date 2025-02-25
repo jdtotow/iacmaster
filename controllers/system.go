@@ -76,7 +76,6 @@ func (s *System) UpdateTableSchema() {
 		&models.Token{},
 		&models.IaCSystem{},
 		&models.Organization{},
-		&models.TerraformValue{},
 		&models.IaCExecutionSettings{},
 		&models.IaCArtifact{},
 		&models.Group{},

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/jdtotow/iacmaster/api"
@@ -13,6 +14,12 @@ import (
 
 func init() {
 	initializers.LoadEnvVariables()
+	//creating tmp folder
+	pwd, _ := os.Getwd()
+	path := pwd + "/tmp"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, os.ModeDir|0755)
+	}
 }
 
 type logWriter struct {
