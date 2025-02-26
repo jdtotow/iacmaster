@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -168,6 +169,12 @@ func (s *System) Handle(message models.HTTPMessage) {
 	if message.Metadata["action"] == "create_env" {
 		env := models.Environment{}
 		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", message.Metadata["object_id"])
+		cloud_credential := models.CloudCredential{}
+		env_settings_id := fmt.Sprintf("%v", env.IaCExecutionSettings.CloudCredentialID)
+		result := s.dbController.GetObjectByID(&cloud_credential, env_settings_id)
+		if result.Error != nil {
+			log.Fatal("Could not retrieve coud credential")
+		}
 		if env.Name == "" {
 			log.Println("Object not found")
 			return
@@ -200,7 +207,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 		info := worker.JobData{
 			VolumePath:            pwd + "/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
 			EnvironmentID:         message.Metadata["object_id"],
-			EnvironmentParameters: env.IaCExecutionSettings.Variables,
+			EnvironmentParameters: cloud_credential.Variables,
 			DockerImage:           docker_image,
 			TerraformVersion:      env.IaCExecutionSettings.TerraformVersion,
 			WorkingDir:            "/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
