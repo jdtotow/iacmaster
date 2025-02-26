@@ -25,7 +25,7 @@ func (i *IaCArtifactController) GetRepo(url, token, tokenUsername, revision, pro
 	_, err := os.Stat(i.TmpFolderPath + "/" + environment)
 	if err != nil {
 		log.Println("The folder exist, it will be remove")
-		os.RemoveAll(i.TmpFolderPath + "/" + environment)
+		os.RemoveAll(i.TmpFolderPath + "/" + environment + "/repo")
 	}
 
 	var proxyOptions transport.ProxyOptions

@@ -56,6 +56,7 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 	parameters := []string{}
 	parameters = append(parameters, "TERRAFORM_VERSION="+data.TerraformVersion)
 	parameters = append(parameters, "WORKING_DIR="+data.WorkingDir)
+	parameters = append(parameters, "ENVIRONMENT_ID="+data.EnvironmentID)
 
 	for name, value := range data.EnvironmentParameters {
 		parameters = append(parameters, name+"="+value)

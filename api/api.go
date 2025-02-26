@@ -341,7 +341,16 @@ func (s *Server) deployEnvironment(context *gin.Context) {
 			Metadata:      metadata,
 		}
 		*s.channel <- message
-	} else if action == "/clean" {
+	} else if action == "/variables" {
+		form, _ := context.MultipartForm()
+		files := form.File["file"]
+		pwd, _ := os.Getwd()
+		environment_id := context.PostForm("environment_id")
+		for _, file := range files {
+			log.Println(file.Filename)
+			// Upload the file to specific dst.
+			context.SaveUploadedFile(file, pwd+"/tmp/"+environment_id+".tfvars")
+		}
 
 	} else {
 

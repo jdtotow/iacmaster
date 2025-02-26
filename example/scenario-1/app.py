@@ -5,7 +5,7 @@ iacmaster_url = "http://localhost:3000"
 org_data = {"name":"swisscom"}
 headers = {"Content-Type":"application/json"}
 
-
+"""
 result = requests.post(iacmaster_url+"/organization", json.dumps(org_data), headers=headers)
 print(result.text)
 org_id = json.loads(result.text)["id"]
@@ -84,15 +84,9 @@ result = requests.post(iacmaster_url+"/environment", json.dumps(env_data), heade
 print(result.text)
 environment_id = json.loads(result.text)["id"]
 
-values = [
-    {
-        "name": "email",
-        "type": "string",
-        "value": "jdtotow@gmail.com"
-    },
-    {
-        "name": "addresses",
-        "type": "list",
-        "value": ["athens","bern","arras"]
-    }
-]
+"""
+
+files = {'file': open('variables.tfvars','rb')}
+values = {'artifact': 'terraform', 'environment_id': 'f8b0b561-417e-41c1-aabd-960319704a6f'}
+
+r = requests.post(iacmaster_url+"/environment/f8b0b561-417e-41c1-aabd-960319704a6f/variables", files=files, data=values)
