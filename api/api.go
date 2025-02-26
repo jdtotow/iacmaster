@@ -331,7 +331,7 @@ func (s *Server) deployEnvironment(context *gin.Context) {
 			"object_id": id,
 		}
 		message := models.HTTPMessage{
-			ObjectName:    "envronment",
+			ObjectName:    "environment",
 			RequestOrigin: context.ClientIP(),
 			Method:        context.Request.Method,
 			Url:           context.Request.RequestURI,

@@ -69,6 +69,9 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 		Env:   parameters,
 		Cmd:   commands,
 	}
+	if _, err := os.Stat(data.VolumePath); err != nil {
+		log.Fatal("file does not exist")
+	}
 	hostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{ // Define volume mounts
 			{
