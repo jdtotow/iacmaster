@@ -66,15 +66,24 @@ func (s *ServiceServer) addDeployment(context *gin.Context) {
 	if s.logic.AddDeployment(deployment) {
 		context.IndentedJSON(http.StatusCreated, gin.H{"id": deployment.Name})
 	} else {
-		context.IndentedJSON(http.StatusOK, gin.H{"message": "Deployment already exists"})
+		context.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "An error occured, for details check deployment error"})
 	}
 }
 
 func (s *ServiceServer) uploadFile(context *gin.Context) {
 	form, _ := context.MultipartForm()
+	fileType := context.PostForm("fileType")
 	files := form.File["file"]
 	environment_id := context.PostForm("environment_id")
+	filename := ""
+	if fileType == "terraform_variables_values" {
+		filename = "variables.tfvars"
+	} else if fileType == "gcp_credential" {
+		filename = "gcp_credential.json"
+	} else {
+		filename = "send.file"
+	}
 	for _, file := range files {
-		context.SaveUploadedFile(file, "/tmp/"+environment_id+".tfvars")
+		context.SaveUploadedFile(file, "/tmp/"+environment_id+"/"+filename)
 	}
 }
