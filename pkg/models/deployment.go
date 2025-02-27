@@ -8,7 +8,6 @@ type GitData struct {
 	ProxyUrl      string `json:"proxy_url"`
 	ProxyUsername string `json:"proxy_username"`
 	ProxyPassword string `json:"proxy_password"`
-	Environment   string `json:"environment"`
 }
 
 type Deployment struct {
@@ -16,7 +15,7 @@ type Deployment struct {
 	WorkingDir            string            `json:"working_dir`
 	CloudDestination      string            `json:"cloud_destination"`
 	EnvironmentParameters map[string]string `json:"environment_parameters`
-	VariableFilePath      string            `json:"variable_file_path`
 	Status                string            `json:"status`
 	GitData               GitData           `json:"git_data"`
+	EnvironmentID         string            `json:"environment_id"`
 }

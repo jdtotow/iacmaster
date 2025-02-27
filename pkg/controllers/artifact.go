@@ -52,10 +52,8 @@ func (i *IaCArtifactController) UpdateRepo(url, token, tokenUsername, revision, 
 	// Pull the latest changes from the remote
 	log.Println("Pulling latest changes...")
 	err = worktree.Pull(&git.PullOptions{
-		RemoteName:    "origin",
-		ReferenceName: plumbing.ReferenceName(revision),
-		Auth:          &auth,
-		ProxyOptions:  proxyOptions,
+		Auth:         &auth,
+		ProxyOptions: proxyOptions,
 	})
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {

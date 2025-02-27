@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -17,6 +20,7 @@ type System struct {
 	artifactController *IaCArtifactController
 	channel            *chan models.HTTPMessage
 	peers              []*models.Node
+	serviceUrl         string
 }
 
 func CreatePeers(settings, myName string) []*models.Node {
@@ -65,6 +69,7 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 		seController:       CreateSecurityController(),
 		artifactController: CreateIaCArtifactController("./tmp"),
 		channel:            channel,
+		serviceUrl:         os.Getenv("SERVICE_URL"),
 		peers:              CreatePeers(clusterSetting, nodeName),
 	}
 }
@@ -178,12 +183,33 @@ func (s *System) Handle(message models.HTTPMessage) {
 			log.Println("Object not found")
 			return
 		}
-		log.Println("Preparing deployment with ", env.IaCExecutionSettings.TerraformVersion)
-		err := s.artifactController.GetRepo(env.IaCArtifact.ScmUrl, env.IaCExecutionSettings.Token.Token, env.IaCExecutionSettings.Token.Username, env.IaCArtifact.Revision, env.IaCArtifact.ProxyUrl, env.IaCArtifact.ProxyUsername, env.IaCArtifact.ProxyPassword, message.Metadata["object_id"])
-		if err != nil {
-			log.Println("Could not clone git repo")
-			return
-		}
 		// send request to service
+		deployment := models.Deployment{}
+		deployment.CloudDestination = string(env.IaCExecutionSettings.DestinationCloud)
+		all_env_parameters := map[string]string{}
+		for k, v := range cloud_credential.Variables {
+			all_env_parameters[k] = v
+		}
+		for k, v := range env.Project.Variables {
+			all_env_parameters[k] = v
+		}
+		deployment.EnvironmentParameters = all_env_parameters
+		deployment.Name = "env-" + env.Project.Name + "-" + message.Metadata["object_id"]
+		deployment.EnvironmentID = message.Metadata["object_id"]
+		deployment.GitData.Url = env.IaCArtifact.ScmUrl
+		deployment.GitData.Revision = env.IaCArtifact.Revision
+		deployment.GitData.ProxyUrl = env.IaCArtifact.ProxyUrl
+		deployment.GitData.ProxyUsername = env.IaCArtifact.ProxyUsername
+		deployment.GitData.ProxyPassword = env.IaCExecutionSettings.Token.Token
+
+		deploy_json, err := json.Marshal(deployment)
+		if err != nil {
+			fmt.Println("Could not send serialize deployment object : ", err.Error())
+		} else {
+			resp, err := http.Post(s.serviceUrl+"/deployment", "application/json", bytes.NewBuffer(deploy_json))
+			if err == nil {
+				fmt.Println(resp.StatusCode)
+			}
+		}
 	}
 }

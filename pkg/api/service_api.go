@@ -66,7 +66,7 @@ func (s *ServiceServer) addDeployment(context *gin.Context) {
 	if s.logic.AddDeployment(deployment) {
 		context.IndentedJSON(http.StatusCreated, gin.H{"id": deployment.Name})
 	} else {
-		context.IndentedJSON(http.StatusConflict, gin.H{"error": "Deployment already exists"})
+		context.IndentedJSON(http.StatusOK, gin.H{"message": "Deployment already exists"})
 	}
 }
 

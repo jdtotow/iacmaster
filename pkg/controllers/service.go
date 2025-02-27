@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jdtotow/iacmaster/pkg/models"
@@ -20,6 +21,8 @@ func CreateLogic(workingDir string) *Logic {
 
 func (l *Logic) AddDeployment(deployment *models.Deployment) bool {
 	if l.HasDeployment(deployment.Name) {
+		err := l.GetRepo(*deployment)
+		fmt.Println(err)
 		return false
 	}
 	l.Deployments = append(l.Deployments, deployment)
@@ -41,7 +44,7 @@ func (l *Logic) HasDeployment(name string) bool {
 }
 
 func (l *Logic) GetRepo(deployment models.Deployment) error {
-	localPath := l.artifactController.TmpFolderPath + "/" + deployment.GitData.Environment
+	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		return l.artifactController.GetRepo(
 			deployment.GitData.Url,
@@ -51,7 +54,7 @@ func (l *Logic) GetRepo(deployment models.Deployment) error {
 			deployment.GitData.ProxyUrl,
 			deployment.GitData.ProxyUsername,
 			deployment.GitData.ProxyPassword,
-			deployment.GitData.Environment,
+			deployment.EnvironmentID,
 		)
 	} else {
 		return l.artifactController.UpdateRepo(
@@ -62,7 +65,7 @@ func (l *Logic) GetRepo(deployment models.Deployment) error {
 			deployment.GitData.ProxyUrl,
 			deployment.GitData.ProxyUsername,
 			deployment.GitData.ProxyPassword,
-			deployment.GitData.Environment,
+			deployment.EnvironmentID,
 		)
 	}
 
