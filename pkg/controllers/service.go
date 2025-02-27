@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"os"
-	"workerservice/models"
+
+	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
 type Logic struct {

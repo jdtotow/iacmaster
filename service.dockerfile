@@ -5,6 +5,6 @@ RUN git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
 RUN ln -s ~/.tfenv/bin/* /usr/local/bin
 ENV PATH=$PATH:/usr/local/bin
 RUN mkdir /app 
-COPY ./worker_service/bin/main /app/main 
-COPY ./worker_service/.env /
+COPY ./bin/service /app/main 
+COPY .env /
 CMD [ "/app/main" ]

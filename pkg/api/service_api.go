@@ -1,37 +1,37 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"workerservice/controllers"
-	"workerservice/models"
+
+	"github.com/jdtotow/iacmaster/pkg/controllers"
+	"github.com/jdtotow/iacmaster/pkg/models"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Server struct {
+type ServiceServer struct {
 	port   int
 	router *gin.Engine
 	logic  *controllers.Logic
 }
 
-func CreateServer() *Server {
-	port, err := strconv.Atoi(os.Getenv("API_PORT"))
+func CreateServiceServer() *ServiceServer {
+	port, err := strconv.Atoi(os.Getenv("SERVICE_PORT"))
 	if err != nil {
 		port = 2020
 	}
-	return &Server{
+	return &ServiceServer{
 		port:   port,
 		router: gin.Default(),
 		logic:  controllers.CreateLogic("/tmp"),
 	}
 }
 
-func (s *Server) Start() error {
+func (s *ServiceServer) Start() error {
 	url := ":" + fmt.Sprintf("%d", s.port)
 	s.router.Use(gin.Recovery())
 	s.router.Use(jsonLoggerMiddleware())
@@ -48,25 +48,7 @@ func (s *Server) Start() error {
 	return err
 }
 
-func jsonLoggerMiddleware() gin.HandlerFunc {
-	return gin.LoggerWithFormatter(
-		func(params gin.LogFormatterParams) string {
-			log := make(map[string]interface{})
-
-			log["status_code"] = params.StatusCode
-			log["path"] = params.Path
-			log["method"] = params.Method
-			log["start_time"] = params.TimeStamp.Format("2006/01/02 - 15:04:05")
-			log["remote_addr"] = params.ClientIP
-			log["response_time"] = params.Latency.String()
-
-			s, _ := json.Marshal(log)
-			return string(s) + "\n"
-		},
-	)
-}
-
-func (s *Server) homePage(context *gin.Context) {
+func (s *ServiceServer) homePage(context *gin.Context) {
 	context.IndentedJSON(
 		http.StatusOK,
 		gin.H{
@@ -75,7 +57,7 @@ func (s *Server) homePage(context *gin.Context) {
 	)
 }
 
-func (s *Server) addDeployment(context *gin.Context) {
+func (s *ServiceServer) addDeployment(context *gin.Context) {
 	var deployment *models.Deployment = &models.Deployment{}
 	err := context.BindJSON(deployment)
 	if err != nil {
@@ -88,7 +70,7 @@ func (s *Server) addDeployment(context *gin.Context) {
 	}
 }
 
-func (s *Server) uploadFile(context *gin.Context) {
+func (s *ServiceServer) uploadFile(context *gin.Context) {
 	form, _ := context.MultipartForm()
 	files := form.File["file"]
 	environment_id := context.PostForm("environment_id")

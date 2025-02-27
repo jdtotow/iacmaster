@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/jdtotow/iacmaster/api"
-	"github.com/jdtotow/iacmaster/controllers"
-	"github.com/jdtotow/iacmaster/initializers"
-	"github.com/jdtotow/iacmaster/models"
+	"github.com/jdtotow/iacmaster/pkg/api"
+	"github.com/jdtotow/iacmaster/pkg/controllers"
+	"github.com/jdtotow/iacmaster/pkg/initializers"
+	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
 func init() {
@@ -35,7 +35,7 @@ func main() {
 
 	channel := make(chan models.HTTPMessage)
 
-	http_server := api.CreateServer(&channel)
+	http_server := api.CreateSystemServer(&channel)
 	system := controllers.CreateSystem(&channel)
 
 	go http_server.Start()

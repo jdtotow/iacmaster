@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jdtotow/iacmaster/controllers"
-	"github.com/jdtotow/iacmaster/models"
+	"github.com/jdtotow/iacmaster/pkg/controllers"
+	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
-type Server struct {
+type SystemServer struct {
 	port              int
 	router            *gin.Engine
 	supportedEndpoint []string
@@ -38,12 +38,12 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateServer(channel *chan models.HTTPMessage) *Server {
+func CreateSystemServer(channel *chan models.HTTPMessage) *SystemServer {
 	port, err := strconv.Atoi(os.Getenv("API_PORT"))
 	if err != nil {
 		port = 3000
 	}
-	return &Server{
+	return &SystemServer{
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
@@ -70,7 +70,7 @@ func jsonLoggerMiddleware() gin.HandlerFunc {
 	)
 }
 
-func (s *Server) Start() error {
+func (s *SystemServer) Start() error {
 	url := ":" + fmt.Sprintf("%d", s.port)
 	s.router.Use(gin.Recovery())
 	s.router.Use(jsonLoggerMiddleware())
@@ -99,12 +99,12 @@ func (s *Server) Start() error {
 	}
 	s.router.POST("/environment/:id/*action", s.deployEnvironment)
 
-	log.Println("Starting api server ...")
+	log.Println("Starting api System Server ...")
 	err := s.router.Run(url)
 	return err
 }
 
-func (s *Server) homePage(context *gin.Context) {
+func (s *SystemServer) homePage(context *gin.Context) {
 	context.IndentedJSON(
 		http.StatusOK,
 		gin.H{
@@ -113,7 +113,7 @@ func (s *Server) homePage(context *gin.Context) {
 	)
 }
 
-func (s *Server) skittlesMan(context *gin.Context) {
+func (s *SystemServer) skittlesMan(context *gin.Context) {
 	path := context.FullPath()
 	var objectName string = ""
 	for _, _path := range s.supportedEndpoint {
@@ -142,7 +142,7 @@ func (s *Server) skittlesMan(context *gin.Context) {
 	context.IndentedJSON(http.StatusNotFound, gin.H{})
 }
 
-func (s *Server) Handle(context *gin.Context, objectName string) {
+func (s *SystemServer) Handle(context *gin.Context, objectName string) {
 	if context.Request.Method == "POST" {
 		if objectName == "organization" {
 			//create an organization
@@ -315,7 +315,7 @@ func (s *Server) Handle(context *gin.Context, objectName string) {
 	}
 }
 
-func (s *Server) deployEnvironment(context *gin.Context) {
+func (s *SystemServer) deployEnvironment(context *gin.Context) {
 	id := context.Param("id")
 	action := context.Param("action")
 	env := models.Environment{}

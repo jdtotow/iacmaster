@@ -1,14 +1,14 @@
 package main
 
 import (
-	"workerservice/api"
-	"workerservice/initializers"
+	"github.com/jdtotow/iacmaster/pkg/api"
+	"github.com/jdtotow/iacmaster/pkg/initializers"
 )
 
 func init() {
 	initializers.LoadEnvVariables()
 }
 func main() {
-	server := api.CreateServer()
+	server := api.CreateServiceServer()
 	server.Start()
 }

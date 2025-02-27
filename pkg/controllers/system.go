@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jdtotow/iacmaster/models"
-	"github.com/jdtotow/iacmaster/worker"
+	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
 type System struct {
@@ -185,33 +184,6 @@ func (s *System) Handle(message models.HTTPMessage) {
 			log.Println("Could not clone git repo")
 			return
 		}
-		//moving variables.tfvars
-		pwd, _ := os.Getwd()
-		sourcePath := pwd + "/tmp/" + message.Metadata["object_id"] + ".tfvars"
-		if _, err := os.Stat(sourcePath); err == nil {
-			// File exists, proceed to move
-			err = os.Rename(sourcePath, pwd+"/tmp/"+message.Metadata["object_id"]+"/"+env.IaCArtifact.HomeFolder+"/variables.tfvars")
-			if err != nil {
-				log.Printf("Error moving file: %v\n", err)
-				return
-			}
-			log.Println("File moved successfully.")
-		}
-		// create worker
-		runner := &Runner{}
-		docker_worker := runner.Create("default", "docker")
-		docker_image := ""
-		if env.IaCArtifact.Type == "terraform" {
-			docker_image = "iacmaster_worker:latest"
-		}
-		info := worker.JobData{
-			VolumePath:            pwd + "/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
-			EnvironmentID:         message.Metadata["object_id"],
-			EnvironmentParameters: cloud_credential.Variables,
-			DockerImage:           docker_image,
-			TerraformVersion:      env.IaCExecutionSettings.TerraformVersion,
-			WorkingDir:            "/tmp/" + message.Metadata["object_id"] + "/" + env.IaCArtifact.HomeFolder,
-		}
-		docker_worker.SetJobInfo(info)
+		// send request to service
 	}
 }
