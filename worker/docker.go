@@ -59,7 +59,6 @@ func (d DockerRunner) SetJobInfo(data JobData) {
 	parameters = append(parameters, "ENVIRONMENT_ID="+data.EnvironmentID)
 
 	for name, value := range data.EnvironmentParameters {
-		log.Println(name + "=" + value)
 		parameters = append(parameters, name+"="+value)
 	}
 	commands := []string{}

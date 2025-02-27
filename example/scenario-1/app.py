@@ -88,6 +88,6 @@ environment_id = json.loads(result.text)["id"]
 """
 
 files = {'file': open('variables.tfvars','rb')}
-values = {'artifact': 'terraform', 'environment_id': '5b42bdfb-db11-4406-8834-dd4fcee3aa99'}
+values = {'artifact': 'terraform', 'environment_id': 'f8b0b561-417e-41c1-aabd-960319704a6f'}
 
-r = requests.post(iacmaster_url+"/environment/5b42bdfb-db11-4406-8834-dd4fcee3aa99/variables", files=files, data=values)
+r = requests.post(iacmaster_url+"/environment/f8b0b561-417e-41c1-aabd-960319704a6f/variables", files=files, data=values)
