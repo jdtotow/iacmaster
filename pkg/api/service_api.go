@@ -41,6 +41,7 @@ func (s *ServiceServer) Start() error {
 		context.IndentedJSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 	s.router.POST("/deployment", s.addDeployment)
+	s.router.POST("/destroy", s.deleteDeployment)
 	s.router.POST("/updalod", s.uploadFile)
 
 	log.Println("Starting api server ...")
@@ -58,7 +59,6 @@ func (s *ServiceServer) homePage(context *gin.Context) {
 }
 
 func (s *ServiceServer) addDeployment(context *gin.Context) {
-	log.Println("Request received")
 	var deployment *models.Deployment = &models.Deployment{}
 	err := context.BindJSON(deployment)
 	if err != nil {
@@ -68,6 +68,20 @@ func (s *ServiceServer) addDeployment(context *gin.Context) {
 		context.IndentedJSON(http.StatusCreated, gin.H{"id": deployment.Name})
 	} else {
 		context.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "An error occured, for details check deployment error"})
+	}
+}
+
+func (s *ServiceServer) deleteDeployment(context *gin.Context) {
+	var deployment *models.Deployment = &models.Deployment{}
+	err := context.BindJSON(deployment)
+	if err != nil {
+		context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+	}
+	if s.logic.HasDeployment(deployment.Name) {
+		s.logic.DeleteDeployment(deployment)
+		context.IndentedJSON(http.StatusAccepted, gin.H{})
+	} else {
+		context.IndentedJSON(http.StatusNotFound, gin.H{"error": "deployment not found"})
 	}
 }
 

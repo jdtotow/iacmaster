@@ -215,5 +215,27 @@ func (s *System) Handle(message models.HTTPMessage) {
 				fmt.Println(err.Error())
 			}
 		}
+	} else if message.Metadata["action"] == "destroy_env" {
+		// send request to service
+		deployment := models.Deployment{}
+		env := models.Environment{}
+		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", message.Metadata["object_id"])
+		deployment.Name = "env-" + env.Project.Name + "-" + message.Metadata["object_id"]
+		deployment.EnvironmentID = message.Metadata["object_id"]
+		deployment.HomeFolder = env.IaCArtifact.HomeFolder
+		deploy_json, err := json.Marshal(deployment)
+		if err != nil {
+			fmt.Println("Could not send serialize deployment object : ", err.Error())
+		} else {
+			resp, err := http.Post(s.serviceUrl+"/destroy", "application/json", bytes.NewBuffer(deploy_json))
+			log.Println("Request sent to service")
+			if err == nil {
+				fmt.Println(resp.StatusCode)
+			} else {
+				fmt.Println(err.Error())
+			}
+		}
+	} else {
+
 	}
 }

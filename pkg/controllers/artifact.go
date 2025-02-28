@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
@@ -58,10 +57,11 @@ func (i *IaCArtifactController) UpdateRepo(url, token, tokenUsername, revision, 
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
 			fmt.Println("Repository is already up-to-date.")
+			return nil
 		} else {
 			fmt.Printf("Error pulling repository: %s\n", err)
+			return err
 		}
-		return err
 	}
 	fmt.Println("Repository updated successfully.")
 	return nil
@@ -84,11 +84,11 @@ func (i *IaCArtifactController) GetRepo(url, token, tokenUsername, revision, pro
 	}
 
 	_, err := git.PlainClone(i.TmpFolderPath+"/"+environment, false, &git.CloneOptions{
-		URL:           url,
-		Progress:      os.Stdout,
-		ReferenceName: plumbing.ReferenceName(revision),
-		ProxyOptions:  proxyOptions,
-		Auth:          &auth,
+		URL:      url,
+		Progress: os.Stdout,
+		//ReferenceName: plumbing.ReferenceName(revision),
+		ProxyOptions: proxyOptions,
+		Auth:         &auth,
 	})
 	return err
 }

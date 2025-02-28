@@ -352,6 +352,23 @@ func (s *SystemServer) deployEnvironment(context *gin.Context) {
 			context.SaveUploadedFile(file, pwd+"/tmp/"+environment_id+".tfvars")
 		}
 
+	} else if action == "/destroy" {
+		log.Println("Destroying of the environment with ID", id)
+		metadata := map[string]string{
+			"action":    "destroy_env",
+			"object_id": id,
+		}
+		message := models.HTTPMessage{
+			ObjectName:    "environment",
+			RequestOrigin: context.ClientIP(),
+			Method:        context.Request.Method,
+			Url:           context.Request.RequestURI,
+			Token:         "-",
+			Body:          context.Request.Body,
+			Params:        context.Request.URL.Query(),
+			Metadata:      metadata,
+		}
+		*s.channel <- message
 	} else {
 
 	}

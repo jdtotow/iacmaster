@@ -21,12 +21,20 @@ func CreateLogic(workingDir string) *Logic {
 	}
 }
 
+func (l *Logic) DeleteDeployment(deployment *models.Deployment) {
+	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
+	err := l.terraformDestroy(localPath)
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
 func (l *Logic) AddDeployment(deployment *models.Deployment) bool {
 	if !l.HasDeployment(deployment.Name) {
 		l.Deployments = append(l.Deployments, deployment)
 	}
 	err := l.GetRepo(*deployment)
 	if err != nil {
+		log.Println("Error -> ", err.Error())
 		deployment.SetError(err.Error())
 		return false
 	}
@@ -162,6 +170,17 @@ func (l *Logic) azureLogin(deployment *models.Deployment) error {
 	commands = append(commands, deployment.EnvironmentParameters["ARM_TENANT_ID"])
 
 	err := l.runCommand(prog, commands)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	commands = commands[:0]
+	commands = append(commands, "account")
+	commands = append(commands, "set")
+	commands = append(commands, "--subscription")
+	commands = append(commands, deployment.EnvironmentParameters["ARM_SUBSCRIPTION_ID"])
+
+	err = l.runCommand(prog, commands)
 	return err
 }
 
@@ -200,9 +219,8 @@ func (l *Logic) terraformApply(folder, var_file_path string, saved bool) error {
 		commands = append(commands, "-chdir="+folder)
 	}
 	commands = append(commands, "apply")
-	if var_file_path != "" {
-		commands = append(commands, "-var-file="+var_file_path)
-	}
+	commands = append(commands, "-auto-approve")
+
 	if saved {
 		commands = append(commands, "plan.tfplan")
 	}
@@ -217,6 +235,7 @@ func (l *Logic) terraformDestroy(folder string) error {
 		commands = append(commands, "-chdir="+folder)
 	}
 	commands = append(commands, "destroy")
+	commands = append(commands, "-auto-approve")
 	err := l.runCommand(prog, commands)
 	return err
 }
