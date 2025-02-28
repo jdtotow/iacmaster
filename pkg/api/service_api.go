@@ -58,6 +58,7 @@ func (s *ServiceServer) homePage(context *gin.Context) {
 }
 
 func (s *ServiceServer) addDeployment(context *gin.Context) {
+	log.Println("Request received")
 	var deployment *models.Deployment = &models.Deployment{}
 	err := context.BindJSON(deployment)
 	if err != nil {

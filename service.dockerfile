@@ -7,4 +7,5 @@ ENV PATH=$PATH:/usr/local/bin
 RUN mkdir /app 
 COPY ./bin/service /app/main 
 COPY .env /
+EXPOSE 2020
 CMD [ "/app/main" ]

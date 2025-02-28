@@ -196,6 +196,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 		deployment.EnvironmentParameters = all_env_parameters
 		deployment.Name = "env-" + env.Project.Name + "-" + message.Metadata["object_id"]
 		deployment.EnvironmentID = message.Metadata["object_id"]
+		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deployment.GitData.Url = env.IaCArtifact.ScmUrl
 		deployment.GitData.Revision = env.IaCArtifact.Revision
 		deployment.GitData.ProxyUrl = env.IaCArtifact.ProxyUrl
@@ -207,8 +208,11 @@ func (s *System) Handle(message models.HTTPMessage) {
 			fmt.Println("Could not send serialize deployment object : ", err.Error())
 		} else {
 			resp, err := http.Post(s.serviceUrl+"/deployment", "application/json", bytes.NewBuffer(deploy_json))
+			log.Println("Request sent to service")
 			if err == nil {
 				fmt.Println(resp.StatusCode)
+			} else {
+				fmt.Println(err.Error())
 			}
 		}
 	}
