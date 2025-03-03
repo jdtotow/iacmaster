@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bufio"
+	"errors"
 	"log"
 	"os"
 	"os/exec"
@@ -9,33 +10,81 @@ import (
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
-type Logic struct {
-	Deployments        []*models.Deployment
-	artifactController *IaCArtifactController
+type ExecutorKind string
+
+const ShellExecutor ExecutorKind = "shell"
+const DockerExecutor ExecutorKind = "docker"
+const KubernetesExecutor ExecutorKind = "kubernetes"
+
+type ExecutorStatus string
+
+const InitStatus ExecutorStatus = "init"
+const RunningStatus ExecutorStatus = "running"
+const FailedStatus ExecutorStatus = "failed"
+const SucceededStatus ExecutorStatus = "succeeded"
+
+type ExecutorState struct {
+	Status ExecutorStatus
+	Error  error
 }
 
-func CreateLogic(workingDir string) *Logic {
-	return &Logic{
-		Deployments:        []*models.Deployment{},
+type IaCExecutor struct {
+	Deployment         *models.Deployment
+	artifactController *IaCArtifactController
+	Name               string
+	Kind               ExecutorKind
+	State              ExecutorState
+	EnvironmentID      string
+	MandatoryCommands  []string
+}
+
+func CreateIaCExecutor(workingDir, name string, mandatory_commands []string, kind ExecutorKind) *IaCExecutor {
+	return &IaCExecutor{
+		Name:              name,
+		Kind:              kind,
+		MandatoryCommands: mandatory_commands,
+		State: ExecutorState{
+			Status: InitStatus,
+			Error:  nil,
+		},
 		artifactController: CreateIaCArtifactController(workingDir),
 	}
 }
 
-func (l *Logic) DeleteDeployment(deployment *models.Deployment) {
+func (l *IaCExecutor) DeleteDeployment(deployment *models.Deployment) {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	err := l.terraformDestroy(localPath)
 	if err != nil {
 		log.Println(err.Error())
 	}
+	os.RemoveAll(localPath)
 }
-func (l *Logic) AddDeployment(deployment *models.Deployment) bool {
-	if !l.HasDeployment(deployment.Name) {
-		l.Deployments = append(l.Deployments, deployment)
+func (l *IaCExecutor) SetDeployment(deployment *models.Deployment) bool {
+	if deployment.EnvironmentID != l.EnvironmentID {
+		err := errors.New("deployment id is different from executor environment id")
+		log.Println(err.Error())
+		deployment.SetError(err.Error())
+		l.State.Status = FailedStatus
+		l.State.Error = err
+		return false
 	}
+	if deployment.TerraformVersion != "" {
+		err := l.setTerraformVersion(deployment.TerraformVersion)
+		if err != nil {
+			log.Println(err.Error())
+			deployment.SetError(err.Error())
+			l.State.Status = FailedStatus
+			l.State.Error = err
+			return false
+		}
+	}
+	l.Deployment = deployment
 	err := l.GetRepo(*deployment)
 	if err != nil {
 		log.Println("Error -> ", err.Error())
 		deployment.SetError(err.Error())
+		l.State.Status = FailedStatus
+		l.State.Error = err
 		return false
 	}
 	deployment.AddActivity("Repository cloned or updated")
@@ -71,10 +120,12 @@ func (l *Logic) AddDeployment(deployment *models.Deployment) bool {
 	} else {
 		log.Println("Deployment ", deployment.EnvironmentID, " deployment succeeded")
 	}
+	l.State.Status = SucceededStatus
+	l.State.Error = nil
 	return true
 }
 
-func (l *Logic) deployEnvironment(deployment *models.Deployment) error {
+func (l *IaCExecutor) deployEnvironment(deployment *models.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	log.Println(localPath)
 	err := l.terraformInit(localPath)
@@ -92,20 +143,11 @@ func (l *Logic) deployEnvironment(deployment *models.Deployment) error {
 	return nil
 }
 
-func (l *Logic) GetDeployments() []*models.Deployment {
-	return l.Deployments
+func (l *IaCExecutor) GetDeployment() *models.Deployment {
+	return l.Deployment
 }
 
-func (l *Logic) HasDeployment(name string) bool {
-	for _, deployment := range l.Deployments {
-		if deployment.Name == name {
-			return true
-		}
-	}
-	return false
-}
-
-func (l *Logic) GetRepo(deployment models.Deployment) error {
+func (l *IaCExecutor) GetRepo(deployment models.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		return l.artifactController.GetRepo(
@@ -133,7 +175,20 @@ func (l *Logic) GetRepo(deployment models.Deployment) error {
 
 }
 
-func (l *Logic) runCommand(prog string, commands []string) error {
+func (l *IaCExecutor) CheckIfMandatoryCommandExists(commands string) bool {
+	for _, command := range l.MandatoryCommands {
+		_, err := exec.LookPath(command)
+		if err != nil {
+			log.Println("Command not found : ", command)
+			l.State.Status = FailedStatus
+			l.State.Error = err
+			return false
+		}
+	}
+	return true
+}
+
+func (l *IaCExecutor) runCommand(prog string, commands []string) error {
 	cmd := exec.Command(prog, commands...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -154,7 +209,16 @@ func (l *Logic) runCommand(prog string, commands []string) error {
 	return nil
 }
 
-func (l *Logic) azureLogin(deployment *models.Deployment) error {
+func (l *IaCExecutor) setTerraformVersion(terraform_version string) error {
+	prog := "tfenv"
+	var commands []string
+	commands = append(commands, "use")
+	commands = append(commands, terraform_version)
+	err := l.runCommand(prog, commands)
+	return err
+}
+
+func (l *IaCExecutor) azureLogin(deployment *models.Deployment) error {
 	//login
 	//az login --service-principal --username $ARM_CLIENT_ID --password $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
 	log.Println("Azure login ...")
@@ -184,7 +248,7 @@ func (l *Logic) azureLogin(deployment *models.Deployment) error {
 	return err
 }
 
-func (l *Logic) terraformInit(folder string) error {
+func (l *IaCExecutor) terraformInit(folder string) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -195,7 +259,7 @@ func (l *Logic) terraformInit(folder string) error {
 	return err
 }
 
-func (l *Logic) terraformPlan(folder, var_file_path string, save bool) error {
+func (l *IaCExecutor) terraformPlan(folder, var_file_path string, save bool) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -212,7 +276,7 @@ func (l *Logic) terraformPlan(folder, var_file_path string, save bool) error {
 	return err
 }
 
-func (l *Logic) terraformApply(folder, var_file_path string, saved bool) error {
+func (l *IaCExecutor) terraformApply(folder, var_file_path string, saved bool) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -228,7 +292,7 @@ func (l *Logic) terraformApply(folder, var_file_path string, saved bool) error {
 	return err
 }
 
-func (l *Logic) terraformDestroy(folder string) error {
+func (l *IaCExecutor) terraformDestroy(folder string) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {

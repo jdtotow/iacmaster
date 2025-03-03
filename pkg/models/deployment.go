@@ -13,10 +13,10 @@ type GitData struct {
 }
 
 type Deployment struct {
-	Name                  string            `json:"name`
 	WorkingDir            string            `json:"working_dir`
 	HomeFolder            string            `json:"home_folder`
 	CloudDestination      string            `json:"cloud_destination"`
+	TerraformVersion      string            `json:"terraform_version"`
 	EnvironmentParameters map[string]string `json:"environment_parameters`
 	Status                string            `json:"status`
 	GitData               GitData           `json:"git_data"`

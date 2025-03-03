@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"slices"
+
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
@@ -56,12 +58,23 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 	if nodeType == "" {
 		log.Fatal("Please set NODE_TYPE variable")
 	}
+	nodeMode := "standalone"
+	var nodeAttributes []models.NodeAttribute
+	if nodeMode == "standalone" {
+		nodeAttributes = []models.NodeAttribute{
+			models.NodeAttribute("log_event"),
+			models.NodeAttribute("manager"),
+			models.NodeAttribute("executor"),
+		}
+
+	}
 
 	n := &models.Node{
-		Type:   models.NodeType(nodeType),
-		Name:   nodeName,
-		Mode:   models.NodeMode("standalone"),
-		Status: models.NodeStatus("init"),
+		Type:       models.NodeType(nodeType),
+		Name:       nodeName,
+		Mode:       models.NodeMode("standalone"),
+		Status:     models.NodeStatus("init"),
+		Attributes: nodeAttributes,
 	}
 	return &System{
 		node:               n,
@@ -149,6 +162,16 @@ func (s *System) CheckMandatoryTableAndData() bool {
 	return s.dbController.db_client.Migrator().HasTable("ia_c_systems")
 }
 
+func (s *System) IsNodeManager() bool {
+	return slices.Contains(s.node.Attributes, models.NodeAttribute("manager"))
+}
+func (s *System) IsNodeEventLog() bool {
+	return slices.Contains(s.node.Attributes, models.NodeAttribute("log_event"))
+}
+func (s *System) IsNodeExecutor() bool {
+	return slices.Contains(s.node.Attributes, models.NodeAttribute("executor"))
+}
+
 func (s *System) Start() {
 	if s.node.Type == models.Primary {
 
@@ -194,7 +217,6 @@ func (s *System) Handle(message models.HTTPMessage) {
 			all_env_parameters[k] = v
 		}
 		deployment.EnvironmentParameters = all_env_parameters
-		deployment.Name = "env-" + env.Project.Name + "-" + message.Metadata["object_id"]
 		deployment.EnvironmentID = message.Metadata["object_id"]
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deployment.GitData.Url = env.IaCArtifact.ScmUrl
@@ -202,6 +224,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 		deployment.GitData.ProxyUrl = env.IaCArtifact.ProxyUrl
 		deployment.GitData.ProxyUsername = env.IaCArtifact.ProxyUsername
 		deployment.GitData.ProxyPassword = env.IaCExecutionSettings.Token.Token
+		deployment.TerraformVersion = env.IaCExecutionSettings.TerraformVersion
 
 		deploy_json, err := json.Marshal(deployment)
 		if err != nil {
@@ -220,12 +243,11 @@ func (s *System) Handle(message models.HTTPMessage) {
 		deployment := models.Deployment{}
 		env := models.Environment{}
 		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", message.Metadata["object_id"])
-		deployment.Name = "env-" + env.Project.Name + "-" + message.Metadata["object_id"]
 		deployment.EnvironmentID = message.Metadata["object_id"]
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deploy_json, err := json.Marshal(deployment)
 		if err != nil {
-			fmt.Println("Could not send serialize deployment object : ", err.Error())
+			fmt.Println("Could not send serialized deployment object : ", err.Error())
 		} else {
 			resp, err := http.Post(s.serviceUrl+"/destroy", "application/json", bytes.NewBuffer(deploy_json))
 			log.Println("Request sent to service")
@@ -236,6 +258,6 @@ func (s *System) Handle(message models.HTTPMessage) {
 			}
 		}
 	} else {
-
+		fmt.Println("Unknown action: ", message.Metadata["action"])
 	}
 }

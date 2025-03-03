@@ -16,6 +16,12 @@ const Down NodeStatus = "down"
 const Failed NodeStatus = "failed"
 const Unknown NodeStatus = "unknown"
 
+type NodeAttribute string
+
+const LogEventNodeAttribute NodeAttribute = "log_event"
+const ExecutorNodeAttribute NodeAttribute = "executor"
+const ManagerNodeAttribute NodeAttribute = "manager"
+
 type NodeMode string
 
 const Standalone NodeMode = "standalone"
@@ -23,11 +29,12 @@ const Cluster NodeMode = "cluster"
 
 type Node struct {
 	gorm.Model
-	Type   NodeType
-	Name   string `gorm:"uniqueIndex"`
-	Status NodeStatus
-	Mode   NodeMode
-	Addr   string
+	Type       NodeType
+	Name       string `gorm:"uniqueIndex"`
+	Status     NodeStatus
+	Mode       NodeMode
+	Addr       string
+	Attributes []NodeAttribute
 }
 
 func (n Node) GetType() NodeType {

@@ -16,7 +16,7 @@ import (
 type ServiceServer struct {
 	port   int
 	router *gin.Engine
-	logic  *controllers.Logic
+	logic  *controllers.IaCExecutor
 }
 
 func CreateServiceServer() *ServiceServer {
@@ -27,7 +27,7 @@ func CreateServiceServer() *ServiceServer {
 	return &ServiceServer{
 		port:   port,
 		router: gin.Default(),
-		logic:  controllers.CreateLogic("/tmp"),
+		logic:  controllers.CreateIaCExecutor("/tmp", "local_executor", []string{"terraform", "az"}, controllers.ShellExecutor),
 	}
 }
 
@@ -64,8 +64,8 @@ func (s *ServiceServer) addDeployment(context *gin.Context) {
 	if err != nil {
 		context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 	}
-	if s.logic.AddDeployment(deployment) {
-		context.IndentedJSON(http.StatusCreated, gin.H{"id": deployment.Name})
+	if s.logic.SetDeployment(deployment) {
+		context.IndentedJSON(http.StatusCreated, gin.H{"id": deployment.EnvironmentID})
 	} else {
 		context.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "An error occured, for details check deployment error"})
 	}
@@ -76,10 +76,12 @@ func (s *ServiceServer) deleteDeployment(context *gin.Context) {
 	err := context.BindJSON(deployment)
 	if err != nil {
 		context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		return
 	}
-	if s.logic.HasDeployment(deployment.Name) {
+	if s.logic.GetDeployment().EnvironmentID == deployment.EnvironmentID {
 		s.logic.DeleteDeployment(deployment)
 		context.IndentedJSON(http.StatusAccepted, gin.H{})
+		return
 	} else {
 		context.IndentedJSON(http.StatusNotFound, gin.H{"error": "deployment not found"})
 	}

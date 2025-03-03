@@ -1,14 +1,19 @@
 # Variables
 SERVICE1_NAME := system
 SERVICE2_NAME := service
+SERVICE3_NAME := executor 
 SERVICE1_CMD := ./cmd/$(SERVICE1_NAME)
 SERVICE2_CMD := ./cmd/$(SERVICE2_NAME)
+SERVIVE3_CMD := ./cmd/$(SERVICE3_NAME)
 SERVICE1_BINARY := bin/$(SERVICE1_NAME)
 SERVICE2_BINARY := bin/$(SERVICE2_NAME)
+SERVICE3_BINARY := bin/$(SERVICE3_NAME)
 DOCKERFILE1 := system.dockerfile
 DOCKERFILE2 := service.dockerfile
-IMAGE1_NAME := $(SERVICE1_NAME)-image
-IMAGE2_NAME := $(SERVICE2_NAME)-image
+DOCKERFILE3 := executor.dockerfile
+IMAGE1_NAME := iacmaster_$(SERVICE1_NAME)
+IMAGE2_NAME := iacmaster_$(SERVICE2_NAME)
+IMAGE3_NAME := iacmaster_$(SERVICE3_NAME)
 
 # Default target
 .PHONY: all
@@ -16,7 +21,7 @@ all: build
 
 # Build binaries
 .PHONY: build
-build: build-system build-service
+build: build-system build-service 
 
 .PHONY: build-system
 build-system:
@@ -30,7 +35,7 @@ build-service:
 
 # Create Docker images
 .PHONY: docker
-docker: docker-system docker-service
+docker: docker-system docker-service docker-executor
 
 .PHONY: docker-system
 docker-system:
@@ -42,9 +47,14 @@ docker-service:
 	@echo "Building Docker image for $(SERVICE2_NAME)..."
 	@docker build -f $(DOCKERFILE2) -t $(IMAGE2_NAME) .
 
+.PHONY: docker-executor
+docker-executor:
+	@echo "Building Docker image for $(SERVICE3_NAME)..."
+	@docker build -f $(DOCKERFILE3) -t $(IMAGE3_NAME) .
+
 # Run services without Docker
 .PHONY: run
-run: run-system run-service
+run: run-system run-service 
 
 .PHONY: run-system
 run-system: build-system
@@ -60,4 +70,4 @@ run-service: build-service
 .PHONY: clean
 clean:
 	@echo "Cleaning up..."
-	@rm -f $(SERVICE1_BINARY) $(SERVICE2_BINARY)
+	@rm -f $(SERVICE1_BINARY) $(SERVICE2_BINARY) $(SERVICE3_BINARY)
