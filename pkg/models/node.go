@@ -18,7 +18,6 @@ const Unknown NodeStatus = "unknown"
 
 type NodeAttribute string
 
-const LogEventNodeAttribute NodeAttribute = "log_event"
 const ExecutorNodeAttribute NodeAttribute = "executor"
 const ManagerNodeAttribute NodeAttribute = "manager"
 
