@@ -27,7 +27,7 @@ type ExecutorController interface {
 	GetExecutors() []Executor
 	GetMaxExecutors() int
 	ExecutorExists(name string) bool
-	StartExecutor(deployment Deployment) (Executor, error)
+	StartExecutor(deployment msg.Deployment) (Executor, error)
 }
 
 type Executor struct {

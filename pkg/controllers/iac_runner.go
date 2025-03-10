@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bufio"
+	"errors"
 	"log"
 	"log/slog"
 	"os"
@@ -90,7 +91,14 @@ func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
 		log.Println("Deployment ", deployment.EnvironmentID, " , Cloud : "+deployment.CloudDestination+" is not supported")
 		return false
 	}
-	err = l.deployEnvironment(deployment)
+	if deployment.IaCArtifactType == "terraform" {
+		err = l.deployTerraformEnvironment(deployment)
+	} else if deployment.IaCArtifactType == "terragrunt" {
+		err = l.deployTerragruntEnvironment(deployment)
+	} else {
+		err = errors.New("iac artifact type not supported : " + deployment.IaCArtifactType)
+	}
+
 	if err != nil {
 		deployment.Error = err.Error()
 		log.Println("Deployment ", deployment.EnvironmentID, " deployment failed : ", err.Error())
@@ -103,9 +111,8 @@ func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
 	return true
 }
 
-func (l *IaCRunner) deployEnvironment(deployment *msg.Deployment) error {
+func (l *IaCRunner) deployTerraformEnvironment(deployment *msg.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
-	log.Println(localPath)
 	err := l.terraformInit(localPath)
 	if err != nil {
 		return err
@@ -115,6 +122,19 @@ func (l *IaCRunner) deployEnvironment(deployment *msg.Deployment) error {
 		return err
 	}
 	err = l.terraformApply(localPath, "", true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (l *IaCRunner) deployTerragruntEnvironment(deployment *msg.Deployment) error {
+	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
+	err := l.terragruntInit(localPath)
+	if err != nil {
+		return err
+	}
+	err = l.terragruntApply(localPath, "", true)
 	if err != nil {
 		return err
 	}
@@ -167,7 +187,8 @@ func (l *IaCRunner) CheckIfMandatoryCommandExists(commands string) bool {
 }
 
 func (l *IaCRunner) SendLog(content string) {
-	systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
+	systemAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
+	systemPID := actor.NewPID(systemAddr, "iacmaster/system")
 	l.Engine.Send(systemPID, &msg.Logging{Origin: l.Name, Content: content})
 }
 
@@ -244,6 +265,18 @@ func (l *IaCRunner) terraformInit(folder string) error {
 	return err
 }
 
+func (l *IaCRunner) terragruntInit(folder string) error {
+	prog := "terragrunt"
+	var commands []string
+	if folder != "" {
+		commands = append(commands, "-chdir="+folder)
+	}
+	commands = append(commands, "run-all")
+	commands = append(commands, "init")
+	err := l.runCommand(prog, commands)
+	return err
+}
+
 func (l *IaCRunner) terraformPlan(folder, var_file_path string, save bool) error {
 	prog := "terraform"
 	var commands []string
@@ -277,6 +310,23 @@ func (l *IaCRunner) terraformApply(folder, var_file_path string, saved bool) err
 	return err
 }
 
+func (l *IaCRunner) terragruntApply(folder, var_file_path string, saved bool) error {
+	prog := "terragrunt"
+	var commands []string
+	if folder != "" {
+		commands = append(commands, "-chdir="+folder)
+	}
+	commands = append(commands, "run-all")
+	commands = append(commands, "apply")
+	commands = append(commands, "-auto-approve")
+
+	if saved {
+		commands = append(commands, "plan.tfplan")
+	}
+	err := l.runCommand(prog, commands)
+	return err
+}
+
 func (l *IaCRunner) terraformDestroy(folder string) error {
 	prog := "terraform"
 	var commands []string
@@ -293,7 +343,8 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("Runner actor started on address -> ", ctx.Engine().Address())
-		systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
+		systemAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
+		systemPID := actor.NewPID(systemAddr, "iacmaster/system")
 		ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Ready", Address: "192.168.1.128:8787"})
 	case actor.Initialized:
 		log.Println("Runner actor initialized")

@@ -15,7 +15,7 @@ import (
 func main() {
 	executor_name := os.Getenv("DEPLOYMENT_ID")
 	mandatory_commands_str := os.Getenv("MANDATORY_COMMANDS")
-	working_dir := os.Getenv("WORKING_DIR")
+	working_dir := os.Getenv("RUNNER_WORKING_DIR")
 	kind := os.Getenv("EXECUTOR_KIND")
 
 	mandatory_commands := []string{}

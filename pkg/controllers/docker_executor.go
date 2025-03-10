@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 
 	"github.com/docker/docker/api/types/container"
@@ -18,6 +19,8 @@ import (
 type DockerContainerController struct {
 	cli                *client.Client
 	ExecutorWorkingDir string
+	Ports              []int
+	SelectedPort       int
 }
 
 func NewDockerContainerController(working_dir string) *DockerContainerController {
@@ -28,6 +31,8 @@ func NewDockerContainerController(working_dir string) *DockerContainerController
 	return &DockerContainerController{
 		cli:                _client,
 		ExecutorWorkingDir: working_dir,
+		Ports:              []int{10000, 12000},
+		SelectedPort:       0,
 	}
 }
 
@@ -54,6 +59,8 @@ func (d *DockerContainerController) GetContainerByID(containerID string) (*conta
 
 // Create a container
 func (d *DockerContainerController) CreateContainer(name string, image string, env []string, volumeMounts []mount.Mount) (string, error) {
+	d.SelectedPort = rand.IntN(d.Ports[1]-d.Ports[0]) + d.Ports[0]
+	port_str := fmt.Sprintf("%v", d.SelectedPort)
 	resp, err := d.cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
@@ -69,7 +76,7 @@ func (d *DockerContainerController) CreateContainer(name string, image string, e
 				"8787/tcp": []nat.PortBinding{
 					{
 						HostIP:   "0.0.0.0",
-						HostPort: "8787",
+						HostPort: port_str,
 					},
 				},
 			},
@@ -90,7 +97,7 @@ func (d *DockerContainerController) CreateContainer(name string, image string, e
 }
 
 // Stop a container by name
-func (d *DockerContainerController) StopContainerByName(containerID string) error {
+func (d *DockerContainerController) StopContainerByID(containerID string) error {
 	_container, err := d.GetContainerByID(containerID)
 	if err != nil {
 		return err

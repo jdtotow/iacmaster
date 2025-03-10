@@ -24,4 +24,5 @@ message Deployment {
     string EnvironmentID = 8;
     string Error = 9;
     repeated string Activities = 10;
+    string IaCArtifactType = 11;
 }

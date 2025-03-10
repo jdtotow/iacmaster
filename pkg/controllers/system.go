@@ -218,6 +218,7 @@ func (s *System) Handle(operation *msg.Operation) {
 		deployment.EnvironmentParameters = all_env_parameters
 		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
+		deployment.IaCArtifactType = env.IaCArtifact.Type
 		git_data.Url = env.IaCArtifact.ScmUrl
 		git_data.Revision = env.IaCArtifact.Revision
 		git_data.ProxyUrl = env.IaCArtifact.ProxyUrl
@@ -237,7 +238,7 @@ func (s *System) Handle(operation *msg.Operation) {
 
 	} else if operation.Action == "destroy_env" {
 		// send request to service
-		deployment := models.Deployment{}
+		deployment := &msg.Deployment{}
 		env := models.Environment{}
 		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", operation.ObjectID)
 		deployment.EnvironmentID = operation.ObjectID
