@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/anthdm/hollywood/actor"
 	"github.com/gin-gonic/gin"
 	"github.com/jdtotow/iacmaster/pkg/controllers"
 	"github.com/jdtotow/iacmaster/pkg/models"
@@ -18,8 +19,8 @@ type SystemServer struct {
 	port              int
 	router            *gin.Engine
 	supportedEndpoint []string
-	channel           *chan models.HTTPMessage
 	dbController      *controllers.DBController
+	actorEngine       *actor.Engine
 }
 
 func getSupportedEnpoint() []string {
@@ -38,7 +39,7 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateSystemServer(channel *chan models.HTTPMessage) *SystemServer {
+func CreateSystemServer(engine *actor.Engine) *SystemServer {
 	port, err := strconv.Atoi(os.Getenv("API_PORT"))
 	if err != nil {
 		port = 3000
@@ -47,7 +48,7 @@ func CreateSystemServer(channel *chan models.HTTPMessage) *SystemServer {
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
-		channel:           channel,
+		actorEngine:       engine,
 		dbController:      controllers.CreateDBController(),
 	}
 }
@@ -125,6 +126,7 @@ func (s *SystemServer) skittlesMan(context *gin.Context) {
 				"object_id": "no",
 			}
 			s.Handle(context, objectName)
+
 			message := models.HTTPMessage{
 				ObjectName:    objectName,
 				RequestOrigin: context.ClientIP(),
@@ -135,7 +137,7 @@ func (s *SystemServer) skittlesMan(context *gin.Context) {
 				Params:        context.Request.URL.Query(),
 				Metadata:      metadata,
 			}
-			*s.channel <- message
+			//send message to system
 			return
 		}
 	}

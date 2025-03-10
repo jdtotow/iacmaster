@@ -52,7 +52,7 @@ func CreatePeers(settings, myName string) []*models.Node {
 	log.Printf("%v nodes found in settings\n", len(result))
 	return result
 }
-func CreateSystem(channel *chan models.HTTPMessage) *System {
+func CreateSystem() *System {
 	var nodeName string = os.Getenv("NODE_NAME")
 	var nodeType string = os.Getenv("NODE_TYPE")
 	var clusterSetting string = os.Getenv("CLUSTER")
@@ -88,7 +88,6 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 		dbController:       CreateDBController(),
 		seController:       CreateSecurityController(),
 		artifactController: CreateIaCArtifactController("./tmp"),
-		channel:            channel,
 		serviceUrl:         os.Getenv("SERVICE_URL"),
 		peers:              CreatePeers(clusterSetting, nodeName),
 		executorManager:    CreateExecutorManager(working_dir, executionPlatform),
@@ -199,11 +198,11 @@ func (s *System) Start() {
 	}
 }
 
-func (s *System) Handle(message models.HTTPMessage) {
-	log.Println("message -> ", message)
-	if message.Metadata["action"] == "create_env" {
+func (s *System) Handle(operation msg.Operation) {
+	log.Println("message -> ", operation)
+	if operation.Action == "create_env" {
 		env := models.Environment{}
-		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", message.Metadata["object_id"])
+		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", operation.ObjectID)
 		cloud_credential := models.CloudCredential{}
 		env_settings_id := fmt.Sprintf("%v", env.IaCExecutionSettings.CloudCredentialID)
 		result := s.dbController.GetObjectByID(&cloud_credential, env_settings_id)
@@ -225,7 +224,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 			all_env_parameters[k] = v
 		}
 		deployment.EnvironmentParameters = all_env_parameters
-		deployment.EnvironmentID = message.Metadata["object_id"]
+		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deployment.GitData.Url = env.IaCArtifact.ScmUrl
 		deployment.GitData.Revision = env.IaCArtifact.Revision
@@ -242,12 +241,12 @@ func (s *System) Handle(message models.HTTPMessage) {
 			// send to node executor peers
 		}
 
-	} else if message.Metadata["action"] == "destroy_env" {
+	} else if operation.Action == "destroy_env" {
 		// send request to service
 		deployment := models.Deployment{}
 		env := models.Environment{}
-		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", message.Metadata["object_id"])
-		deployment.EnvironmentID = message.Metadata["object_id"]
+		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", operation.ObjectID)
+		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deploy_json, err := json.Marshal(deployment)
 		if err != nil {
@@ -262,7 +261,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 			}
 		}
 	} else {
-		fmt.Println("Unknown action: ", message.Metadata["action"])
+		fmt.Println("Unknown action: ", operation.ObjectID)
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 	"github.com/jdtotow/iacmaster/pkg/actors"
 	"github.com/jdtotow/iacmaster/pkg/api"
 	"github.com/jdtotow/iacmaster/pkg/initializers"
-	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
 func init() {
@@ -35,10 +34,6 @@ func main() {
 	log.SetFlags(0)
 	log.SetOutput(new(logWriter))
 
-	channel := make(chan models.HTTPMessage)
-
-	http_server := api.CreateSystemServer(&channel)
-	go http_server.Start()
 	system_port := os.Getenv("IACMASTER_SYSTEM_PORT")
 	system_address := os.Getenv("IACMASTER_SYSTEM_ADDRESS")
 	if system_address == "" {
@@ -49,13 +44,12 @@ func main() {
 	}
 	r := remote.New(system_address+":"+system_port, remote.NewConfig())
 	engine, err := actor.NewEngine(actor.NewEngineConfig().WithRemote(r))
+
+	http_server := api.CreateSystemServer(engine)
+	go http_server.Start()
+
 	if err != nil {
 		log.Fatal("failed to create engine for iacmaster system", "error", err)
 	}
-	pid := engine.Spawn(actors.CreateSystemActor(&channel), "iacmaster", actor.WithID("system"))
-	log.Println("System pid -> ", pid)
-	for range 10 {
-		log.Println("waiting for msg")
-		time.Sleep(time.Second * 10)
-	}
+	engine.Spawn(actors.CreateSystemActor(), "iacmaster", actor.WithID("system"))
 }
