@@ -275,6 +275,8 @@ func (s *System) Receive(ctx *actor.Context) {
 	case *msg.RunnerStatus:
 		log.Println("Runner with id ", m.Name, " is ", m.Status)
 		s.HandlerRunnerStatus(m, ctx)
+	case *msg.Logging:
+		log.Println("[", m.Origin, "] ", m.Content)
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

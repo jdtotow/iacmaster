@@ -21,9 +21,10 @@ type IaCRunner struct {
 	State              models.ExecutorState
 	EnvironmentID      string
 	MandatoryCommands  []string
+	Engine             *actor.Engine
 }
 
-func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind models.ExecutorKind) *IaCRunner {
+func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind models.ExecutorKind, engine *actor.Engine) *IaCRunner {
 	return &IaCRunner{
 		Name:              name,
 		Kind:              kind,
@@ -33,6 +34,7 @@ func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind 
 			Error:  nil,
 		},
 		artifactController: CreateIaCArtifactController(workingDir),
+		Engine:             engine,
 	}
 }
 
@@ -164,6 +166,11 @@ func (l *IaCRunner) CheckIfMandatoryCommandExists(commands string) bool {
 	return true
 }
 
+func (l *IaCRunner) SendLog(content string) {
+	systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
+	l.Engine.Send(systemPID, &msg.Logging{Origin: l.Name, Content: content})
+}
+
 func (l *IaCRunner) runCommand(prog string, commands []string) error {
 	cmd := exec.Command(prog, commands...)
 	stdout, err := cmd.StdoutPipe()
@@ -177,7 +184,9 @@ func (l *IaCRunner) runCommand(prog string, commands []string) error {
 	in := bufio.NewScanner(stdout)
 
 	for in.Scan() {
-		log.Println(in.Text()) // write each line to your log, or anything you need
+		content := in.Text()
+		log.Println(content) // write each line to your log, or anything you need
+		l.SendLog(content)
 	}
 	if err := in.Err(); err != nil {
 		log.Printf("error: %s", err)
@@ -292,7 +301,9 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 		log.Println("Runner actor has god an ID")
 	case *msg.Deployment:
 		log.Println("Depoyment object received")
-		s.SetDeployment(m)
+		if !s.SetDeployment(m) {
+			s.SendLog(s.Deployment.Error)
+		}
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

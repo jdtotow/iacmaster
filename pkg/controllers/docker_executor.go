@@ -130,7 +130,7 @@ func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (m
 		{
 			Type:   mount.TypeBind,
 			Source: d.ExecutorWorkingDir,
-			Target: "/tmp",
+			Target: "/runner",
 		},
 	}
 
