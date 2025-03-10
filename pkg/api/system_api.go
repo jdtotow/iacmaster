@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jdtotow/iacmaster/pkg/controllers"
 	"github.com/jdtotow/iacmaster/pkg/models"
+	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
 type SystemServer struct {
@@ -21,6 +22,8 @@ type SystemServer struct {
 	supportedEndpoint []string
 	dbController      *controllers.DBController
 	actorEngine       *actor.Engine
+	systemPID         string
+	systemAddr        string
 }
 
 func getSupportedEnpoint() []string {
@@ -50,6 +53,8 @@ func CreateSystemServer(engine *actor.Engine) *SystemServer {
 		supportedEndpoint: getSupportedEnpoint(),
 		actorEngine:       engine,
 		dbController:      controllers.CreateDBController(),
+		systemPID:         "iacmaster/system",
+		systemAddr:        os.Getenv("IACMASTER_SYSTEM_ADDR") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT"),
 	}
 }
 
@@ -120,24 +125,12 @@ func (s *SystemServer) skittlesMan(context *gin.Context) {
 	for _, _path := range s.supportedEndpoint {
 		if strings.HasPrefix(path, _path) {
 			objectName = strings.Replace(_path, "/", "", 1)
-			token, _ := context.Cookie("Authorization")
-			metadata := map[string]string{
-				"action":    "no_action",
-				"object_id": "no",
-			}
 			s.Handle(context, objectName)
-
-			message := models.HTTPMessage{
-				ObjectName:    objectName,
-				RequestOrigin: context.ClientIP(),
-				Method:        context.Request.Method,
-				Url:           context.Request.RequestURI,
-				Token:         token,
-				Body:          context.Request.Body,
-				Params:        context.Request.URL.Query(),
-				Metadata:      metadata,
-			}
-			//send message to system
+			var operation msg.Operation
+			operation.Action = "no_action"
+			operation.ObjectID = "no"
+			systemPID := actor.NewPID(s.systemAddr, s.systemPID)
+			s.actorEngine.Send(systemPID, &operation)
 			return
 		}
 	}
@@ -328,21 +321,12 @@ func (s *SystemServer) deployEnvironment(context *gin.Context) {
 	}
 	if action == "/deploy" {
 		log.Println("Deployment of the environment with ID", id)
-		metadata := map[string]string{
-			"action":    "create_env",
-			"object_id": id,
-		}
-		message := models.HTTPMessage{
-			ObjectName:    "environment",
-			RequestOrigin: context.ClientIP(),
-			Method:        context.Request.Method,
-			Url:           context.Request.RequestURI,
-			Token:         "-",
-			Body:          context.Request.Body,
-			Params:        context.Request.URL.Query(),
-			Metadata:      metadata,
-		}
-		*s.channel <- message
+		var operation msg.Operation
+		operation.Action = "create_env"
+		operation.ObjectID = id
+		systemPID := actor.NewPID(s.systemAddr, s.systemPID)
+		s.actorEngine.Send(systemPID, &operation)
+
 	} else if action == "/variables" {
 		form, _ := context.MultipartForm()
 		files := form.File["file"]
@@ -356,21 +340,12 @@ func (s *SystemServer) deployEnvironment(context *gin.Context) {
 
 	} else if action == "/destroy" {
 		log.Println("Destroying of the environment with ID", id)
-		metadata := map[string]string{
-			"action":    "destroy_env",
-			"object_id": id,
-		}
-		message := models.HTTPMessage{
-			ObjectName:    "environment",
-			RequestOrigin: context.ClientIP(),
-			Method:        context.Request.Method,
-			Url:           context.Request.RequestURI,
-			Token:         "-",
-			Body:          context.Request.Body,
-			Params:        context.Request.URL.Query(),
-			Metadata:      metadata,
-		}
-		*s.channel <- message
+		var operation msg.Operation
+		operation.Action = "destroy_env"
+		operation.ObjectID = id
+		systemPID := actor.NewPID(s.systemAddr, s.systemPID)
+		s.actorEngine.Send(systemPID, &operation)
+
 	} else {
 
 	}

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/anthdm/hollywood/actor"
-	"github.com/jdtotow/iacmaster/pkg/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/jdtotow/iacmaster/pkg/models"
+	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
 type IaCRunner struct {

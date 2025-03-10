@@ -10,13 +10,12 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"slices"
 
 	"github.com/anthdm/hollywood/actor"
-	"github.com/jdtotow/iacmaster/pkg/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/jdtotow/iacmaster/pkg/models"
+	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
 type System struct {
@@ -24,7 +23,6 @@ type System struct {
 	dbController       *DBController
 	seController       *SecurityController
 	artifactController *IaCArtifactController
-	channel            *chan models.HTTPMessage
 	peers              []*models.Node
 	serviceUrl         string
 	executorManager    *ExecutorManager
@@ -188,17 +186,10 @@ func (s *System) Start() {
 		}
 		//
 		log.Println("IaC Master logic started !")
-		var message models.HTTPMessage
-		for {
-			log.Println("Waiting for event ...")
-			message = <-*s.channel
-			s.Handle(message)
-			time.Sleep(time.Second)
-		}
 	}
 }
 
-func (s *System) Handle(operation msg.Operation) {
+func (s *System) Handle(operation *msg.Operation) {
 	log.Println("message -> ", operation)
 	if operation.Action == "create_env" {
 		env := models.Environment{}
@@ -269,7 +260,9 @@ func (s *System) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("System actor started at -> ", ctx.Engine().Address())
-		//s.Start()
+		s.Start()
+	case *msg.Operation:
+		s.Handle(m)
 	case actor.Initialized:
 		log.Println("System actor initialized")
 	case *actor.PID:
