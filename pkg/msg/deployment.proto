@@ -14,12 +14,14 @@ message GitData {
 }
 
 message Deployment {
-    string workingDir = 1;
-    string homeFolder = 2;
-    string cloudDestination = 3;
-    string terraformVersion = 4;
-    map<string,string> environmentParemeters = 5;
-    string status = 6;
-    GitData gitData = 7;
-    string environmentID = 8;
+    string WorkingDir = 1;
+    string HomeFolder = 2;
+    string CloudDestination = 3;
+    string TerraformVersion = 4;
+    map<string,string> EnvironmentParameters = 5;
+    string Status = 6;
+    GitData GitData = 7;
+    string EnvironmentID = 8;
+    string Error = 9;
+    repeated string Activities = 10;
 }

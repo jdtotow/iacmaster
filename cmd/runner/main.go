@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	executor_name := os.Getenv("EXECUTOR_NAME")
+	executor_name := os.Getenv("DEPLOYMENT_ID")
 	mandatory_commands_str := os.Getenv("MANDATORY_COMMANDS")
 	working_dir := os.Getenv("WORKING_DIR")
 	kind := os.Getenv("EXECUTOR_KIND")
@@ -48,5 +48,5 @@ func main() {
 		log.Fatal("failed to create engine for runner", "error", err)
 	}
 	engine.Spawn(actors.CreateRunnerActor(working_dir, executor_name, mandatory_commands, models.ExecutorKind(kind)), "runner", actor.WithID(os.Getenv("DEPLOYMENT_ID")))
-	//select {}
+	select {}
 }

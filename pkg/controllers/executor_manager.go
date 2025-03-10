@@ -6,6 +6,7 @@ import (
 
 	"github.com/jdtotow/iacmaster/pkg/interfaces"
 	"github.com/jdtotow/iacmaster/pkg/models"
+	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
 type ExecutorManager struct {
@@ -77,7 +78,7 @@ func (em *ExecutorManager) ExecutorExists(name string) bool {
 	return false
 }
 
-func (em *ExecutorManager) StartDeployment(deployment models.Deployment) error {
+func (em *ExecutorManager) StartDeployment(deployment *msg.Deployment) error {
 	executorController := em.CreateExecutorController()
 	if executorController == nil {
 		log.Println(em.ExecutionPlatform)

@@ -13,6 +13,8 @@ import (
 
 	"slices"
 
+	"maps"
+
 	"github.com/anthdm/hollywood/actor"
 	"github.com/jdtotow/iacmaster/pkg/models"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
@@ -205,26 +207,27 @@ func (s *System) Handle(operation *msg.Operation) {
 			return
 		}
 		// send request to service
-		deployment := models.Deployment{}
+		deployment := msg.Deployment{}
+		git_data := msg.GitData{}
+
 		deployment.CloudDestination = string(env.IaCExecutionSettings.DestinationCloud)
 		all_env_parameters := map[string]string{}
-		for k, v := range cloud_credential.Variables {
-			all_env_parameters[k] = v
-		}
-		for k, v := range env.Project.Variables {
-			all_env_parameters[k] = v
-		}
+		maps.Copy(all_env_parameters, cloud_credential.Variables)
+		maps.Copy(all_env_parameters, env.Project.Variables)
+
 		deployment.EnvironmentParameters = all_env_parameters
 		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
-		deployment.GitData.Url = env.IaCArtifact.ScmUrl
-		deployment.GitData.Revision = env.IaCArtifact.Revision
-		deployment.GitData.ProxyUrl = env.IaCArtifact.ProxyUrl
-		deployment.GitData.ProxyUsername = env.IaCArtifact.ProxyUsername
-		deployment.GitData.ProxyPassword = env.IaCExecutionSettings.Token.Token
+		git_data.Url = env.IaCArtifact.ScmUrl
+		git_data.Revision = env.IaCArtifact.Revision
+		git_data.ProxyUrl = env.IaCArtifact.ProxyUrl
+		git_data.ProxyUsername = env.IaCArtifact.ProxyUsername
+		git_data.ProxyPassword = env.IaCExecutionSettings.Token.Token
 		deployment.TerraformVersion = env.IaCExecutionSettings.TerraformVersion
+
+		deployment.GitData = &git_data
 		if s.IsNodeExecutor() {
-			err := s.executorManager.StartDeployment(deployment)
+			err := s.executorManager.StartDeployment(&deployment)
 			if err != nil {
 				log.Println(err)
 			}
@@ -261,6 +264,8 @@ func (s *System) Receive(ctx *actor.Context) {
 	case actor.Started:
 		log.Println("System actor started at -> ", ctx.Engine().Address())
 		s.Start()
+	case actor.Stopped:
+		log.Println("System actor has stopped")
 	case *msg.Operation:
 		s.Handle(m)
 	case actor.Initialized:
@@ -268,8 +273,21 @@ func (s *System) Receive(ctx *actor.Context) {
 	case *actor.PID:
 		log.Println("System actor has god an ID")
 	case *msg.RunnerStatus:
-		log.Println("Runner status message received")
+		log.Println("Runner with id ", m.Name, " is ", m.Status)
+		s.HandlerRunnerStatus(m, ctx)
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
+	}
+}
+
+func (s *System) HandlerRunnerStatus(status *msg.RunnerStatus, ctx *actor.Context) {
+	if status.Status == "Ready" {
+		executor := s.executorManager.GetExecutor(status.Name)
+		if executor != nil {
+			runner_pid := ctx.Sender()
+			runnerPID := actor.NewPID("192.168.1.128:8787", "runner/"+status.Name)
+			log.Println("Sending deployment object to -> ", runner_pid)
+			ctx.Send(runnerPID, executor.DeploymentObject)
+		}
 	}
 }

@@ -10,7 +10,9 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/jdtotow/iacmaster/pkg/models"
+	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
 type DockerContainerController struct {
@@ -57,9 +59,20 @@ func (d *DockerContainerController) CreateContainer(name string, image string, e
 		&container.Config{
 			Image: image,
 			Env:   env,
+			ExposedPorts: nat.PortSet{
+				"8787/tcp": struct{}{},
+			},
 		},
 		&container.HostConfig{
 			Mounts: volumeMounts,
+			PortBindings: nat.PortMap{
+				"8787/tcp": []nat.PortBinding{
+					{
+						HostIP:   "0.0.0.0",
+						HostPort: "8787",
+					},
+				},
+			},
 		},
 		&network.NetworkingConfig{},
 		nil,
@@ -112,7 +125,7 @@ func (d *DockerContainerController) GetContainerStatus(containerID string) (stri
 	return container.State, nil
 }
 
-func (d *DockerContainerController) AddDeployment(deployment models.Deployment) (models.Executor, error) {
+func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (models.Executor, error) {
 	volumes := []mount.Mount{
 		{
 			Type:   mount.TypeBind,
@@ -128,8 +141,9 @@ func (d *DockerContainerController) AddDeployment(deployment models.Deployment) 
 			Status: models.InitStatus,
 			Error:  nil,
 		},
-		Kind:        "docker",
-		DepoymentID: deployment.EnvironmentID,
+		Kind:             "docker",
+		DepoymentID:      deployment.EnvironmentID,
+		DeploymentObject: deployment,
 	}
 	if system_address == "" {
 		log.Println("Please set IACMASTER_SYSTEM_ADDRESS")

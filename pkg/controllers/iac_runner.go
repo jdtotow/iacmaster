@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"bufio"
-	"errors"
 	"log"
 	"log/slog"
 	"os"
@@ -15,7 +14,7 @@ import (
 )
 
 type IaCRunner struct {
-	Deployment         *models.Deployment
+	Deployment         *msg.Deployment
 	artifactController *IaCArtifactController
 	Name               string
 	Kind               models.ExecutorKind
@@ -37,7 +36,7 @@ func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind 
 	}
 }
 
-func (l *IaCRunner) DeleteDeployment(deployment *models.Deployment) {
+func (l *IaCRunner) DeleteDeployment(deployment *msg.Deployment) {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	err := l.terraformDestroy(localPath)
 	if err != nil {
@@ -45,62 +44,53 @@ func (l *IaCRunner) DeleteDeployment(deployment *models.Deployment) {
 	}
 	os.RemoveAll(localPath)
 }
-func (l *IaCRunner) SetDeployment(deployment *models.Deployment) bool {
-	if deployment.EnvironmentID != l.EnvironmentID {
-		err := errors.New("deployment id is different from executor environment id")
-		log.Println(err.Error())
-		deployment.SetError(err.Error())
-		l.State.Status = models.FailedStatus
-		l.State.Error = err
-		return false
-	}
+func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
+	l.Deployment = deployment
 	if deployment.TerraformVersion != "" {
 		err := l.setTerraformVersion(deployment.TerraformVersion)
 		if err != nil {
 			log.Println(err.Error())
-			deployment.SetError(err.Error())
+			deployment.Error = err.Error()
 			l.State.Status = models.FailedStatus
 			l.State.Error = err
 			return false
 		}
 	}
 	l.Deployment = deployment
-	err := l.GetRepo(*deployment)
+	err := l.GetRepo(deployment)
 	if err != nil {
 		log.Println("Error -> ", err.Error())
-		deployment.SetError(err.Error())
+		deployment.Error = err.Error()
 		l.State.Status = models.FailedStatus
 		l.State.Error = err
 		return false
 	}
-	deployment.AddActivity("Repository cloned or updated")
+	//
 	if deployment.CloudDestination == "azure" {
 		err = l.azureLogin(deployment)
 		if err != nil {
 			log.Println("An error occured on deployment ", deployment.EnvironmentID, " :", err.Error())
-			deployment.SetError(err.Error())
+			deployment.Error = err.Error()
 			return false
 		} else {
 			log.Println("Deployment ", deployment.EnvironmentID, " login succeeded on azure")
-			deployment.AddActivity("Azure login succeeded")
+			//deployment.AddActivity("Azure login succeeded")
 		}
 	} else if deployment.CloudDestination == "aws" {
 		os.Setenv("AWS_ACCESS_KEY_ID", deployment.EnvironmentParameters["AWS_ACCESS_KEY_ID"])
 		os.Setenv("AWS_SECRET_ACCESS_KEY", deployment.EnvironmentParameters["AWS_SECRET_ACCESS_KEY"])
 		log.Println("Deployment ", deployment.EnvironmentID, " AWS access parameters define")
-		deployment.AddActivity("AWS access parameters defined")
 	} else if deployment.CloudDestination == "gcp" {
 		os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", deployment.EnvironmentParameters["GOOGLE_APPLICATION_CREDENTIALS"])
-		deployment.AddActivity("GCP credential file defined")
 		log.Println("Deployment ", deployment.EnvironmentID, " GCP credential file defined")
 	} else {
-		deployment.SetError("Cloud : " + deployment.CloudDestination + " is not supported")
+		deployment.Error = "Cloud : " + deployment.CloudDestination + " is not supported"
 		log.Println("Deployment ", deployment.EnvironmentID, " , Cloud : "+deployment.CloudDestination+" is not supported")
 		return false
 	}
 	err = l.deployEnvironment(deployment)
 	if err != nil {
-		deployment.SetError(err.Error())
+		deployment.Error = err.Error()
 		log.Println("Deployment ", deployment.EnvironmentID, " deployment failed : ", err.Error())
 		return false
 	} else {
@@ -111,7 +101,7 @@ func (l *IaCRunner) SetDeployment(deployment *models.Deployment) bool {
 	return true
 }
 
-func (l *IaCRunner) deployEnvironment(deployment *models.Deployment) error {
+func (l *IaCRunner) deployEnvironment(deployment *msg.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	log.Println(localPath)
 	err := l.terraformInit(localPath)
@@ -129,11 +119,11 @@ func (l *IaCRunner) deployEnvironment(deployment *models.Deployment) error {
 	return nil
 }
 
-func (l *IaCRunner) GetDeployment() *models.Deployment {
+func (l *IaCRunner) GetDeployment() *msg.Deployment {
 	return l.Deployment
 }
 
-func (l *IaCRunner) GetRepo(deployment models.Deployment) error {
+func (l *IaCRunner) GetRepo(deployment *msg.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		return l.artifactController.GetRepo(
@@ -204,7 +194,7 @@ func (l *IaCRunner) setTerraformVersion(terraform_version string) error {
 	return err
 }
 
-func (l *IaCRunner) azureLogin(deployment *models.Deployment) error {
+func (l *IaCRunner) azureLogin(deployment *msg.Deployment) error {
 	//login
 	//az login --service-principal --username $ARM_CLIENT_ID --password $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
 	log.Println("Azure login ...")
@@ -295,11 +285,14 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 	case actor.Started:
 		log.Println("Runner actor started on address -> ", ctx.Engine().Address())
 		systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
-		ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Running", Address: "192.168.1.128:8787"})
+		ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Ready", Address: "192.168.1.128:8787"})
 	case actor.Initialized:
 		log.Println("Runner actor initialized")
 	case *actor.PID:
 		log.Println("Runner actor has god an ID")
+	case *msg.Deployment:
+		log.Println("Depoyment object received")
+		s.SetDeployment(m)
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

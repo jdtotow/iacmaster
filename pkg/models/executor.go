@@ -1,5 +1,7 @@
 package models
 
+import "github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
+
 type ExecutorKind string
 
 const ShellExecutor ExecutorKind = "shell"
@@ -29,11 +31,12 @@ type ExecutorController interface {
 }
 
 type Executor struct {
-	Kind        ExecutorKind
-	State       ExecutorState
-	Name        string
-	DepoymentID string
-	ObjectID    string //the object can be a container, a pod or a process pid
+	Kind             ExecutorKind
+	State            ExecutorState
+	Name             string
+	DepoymentID      string
+	ObjectID         string //the object can be a container, a pod or a process pid
+	DeploymentObject *msg.Deployment
 }
 
 func (e *Executor) SetError(err error) {

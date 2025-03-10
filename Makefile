@@ -77,5 +77,4 @@ proto:
 clean:
 	@echo "Cleaning up..."
 	@rm -f $(SERVICE1_BINARY) $(SERVICE2_BINARY) $(SERVICE3_BINARY)
-	@rm -rf $(PROTO_DST_DIR)/*
 	@echo "End cleaning!"

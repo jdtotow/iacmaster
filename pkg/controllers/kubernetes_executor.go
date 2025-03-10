@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jdtotow/iacmaster/pkg/models"
+	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -79,7 +80,7 @@ func (k *KubernetesPodController) DeletePod(namespace, podName string) error {
 	return k.clientset.CoreV1().Pods(namespace).Delete(context.TODO(), podName, metav1.DeleteOptions{})
 }
 
-func (d *KubernetesPodController) AddDeployment(deployment models.Deployment) (models.Executor, error) {
+func (d *KubernetesPodController) AddDeployment(deployment *msg.Deployment) (models.Executor, error) {
 
 	volumes := v1.Volume{
 		Name: "workspace",
@@ -96,8 +97,9 @@ func (d *KubernetesPodController) AddDeployment(deployment models.Deployment) (m
 			Status: models.InitStatus,
 			Error:  nil,
 		},
-		Kind:        "kubernetes",
-		DepoymentID: deployment.EnvironmentID,
+		Kind:             "kubernetes",
+		DepoymentID:      deployment.EnvironmentID,
+		DeploymentObject: deployment,
 	}
 	docker_image := "iacmaster_runner:latest"
 	pod_name, err := d.CreatePod(d.namespace, deployment.EnvironmentID, docker_image, deployment.EnvironmentParameters, []v1.Volume{volumes})

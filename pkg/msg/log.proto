@@ -1,0 +1,9 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
+
+
+message Logging {
+    string content = 1;
+    string origin = 2;
+}
