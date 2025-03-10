@@ -54,7 +54,7 @@ func CreateSystemServer(engine *actor.Engine) *SystemServer {
 		actorEngine:       engine,
 		dbController:      controllers.CreateDBController(),
 		systemPID:         "iacmaster/system",
-		systemAddr:        os.Getenv("IACMASTER_SYSTEM_ADDR") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT"),
+		systemAddr:        os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT"),
 	}
 }
 

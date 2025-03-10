@@ -52,4 +52,5 @@ func main() {
 		log.Fatal("failed to create engine for iacmaster system", "error", err)
 	}
 	engine.Spawn(actors.CreateSystemActor(), "iacmaster", actor.WithID("system"))
+	select {}
 }

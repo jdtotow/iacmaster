@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"time"
 
 	"github.com/anthdm/hollywood/actor"
 	"github.com/jdtotow/iacmaster/pkg/models"
@@ -296,12 +295,7 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 	case actor.Started:
 		log.Println("Runner actor started on address -> ", ctx.Engine().Address())
 		systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
-		for range 10 {
-			log.Println("Sending message to system")
-			ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Running", Address: "192.168.1.128:8787"})
-			time.Sleep(time.Second * 5)
-		}
-
+		ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Running", Address: "192.168.1.128:8787"})
 	case actor.Initialized:
 		log.Println("Runner actor initialized")
 	case *actor.PID:
