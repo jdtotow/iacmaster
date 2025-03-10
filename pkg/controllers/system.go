@@ -269,7 +269,7 @@ func (s *System) Handle(message models.HTTPMessage) {
 func (s *System) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
-		log.Println("System actor started")
+		log.Println("System actor started at -> ", ctx.Engine().Address())
 		s.Start()
 	case actor.Initialized:
 		log.Println("System actor initialized")

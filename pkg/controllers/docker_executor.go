@@ -142,6 +142,7 @@ func (d *DockerContainerController) AddDeployment(deployment models.Deployment) 
 	var env_vars []string
 	env_vars = append(env_vars, "IACMASTER_SYSTEM_ADDRESS="+system_address)
 	env_vars = append(env_vars, "IACMASTER_SYSTEM_PORT="+os.Getenv("IACMASTER_SYSTEM_PORT"))
+	env_vars = append(env_vars, "DEPLOYMENT_ID="+deployment.EnvironmentID)
 
 	for key, value := range deployment.EnvironmentParameters {
 		env_vars = append(env_vars, key+"="+value)

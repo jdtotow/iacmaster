@@ -294,7 +294,7 @@ func (l *IaCRunner) terraformDestroy(folder string) error {
 func (s *IaCRunner) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
-		log.Println("Runner actor started")
+		log.Println("Runner actor started on address -> ", ctx.Engine().Address())
 		systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
 		for range 10 {
 			log.Println("Sending message to system")
