@@ -52,5 +52,10 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create engine for iacmaster system", "error", err)
 	}
-	engine.Spawn(actors.CreateSystemActor(&channel), "iacmaster", actor.WithID("system"))
+	pid := engine.Spawn(actors.CreateSystemActor(&channel), "iacmaster", actor.WithID("system"))
+	log.Println("System pid -> ", pid)
+	for range 10 {
+		log.Println("waiting for msg")
+		time.Sleep(time.Second * 10)
+	}
 }

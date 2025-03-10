@@ -270,7 +270,7 @@ func (s *System) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("System actor started at -> ", ctx.Engine().Address())
-		s.Start()
+		//s.Start()
 	case actor.Initialized:
 		log.Println("System actor initialized")
 	case *actor.PID:

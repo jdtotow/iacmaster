@@ -48,4 +48,5 @@ func main() {
 		log.Fatal("failed to create engine for runner", "error", err)
 	}
 	engine.Spawn(actors.CreateRunnerActor(working_dir, executor_name, mandatory_commands, models.ExecutorKind(kind)), "runner", actor.WithID(os.Getenv("DEPLOYMENT_ID")))
+	//select {}
 }
