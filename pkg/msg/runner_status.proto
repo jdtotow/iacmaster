@@ -1,0 +1,9 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg";
+
+message RunnerStatus {
+    string name = 1;
+    string status = 2;
+    string address = 3;
+}

@@ -9,4 +9,5 @@ RUN apt-get update && apt-get install -y git curl unzip
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 RUN mkdir /app 
 COPY --from=builder /src/bin/runner /app/runner
-CMD ["/app/runner","/tmp/deployment.json"]
+EXPOSE 8787 
+CMD ["/app/runner"]

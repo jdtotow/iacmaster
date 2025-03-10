@@ -14,6 +14,8 @@ DOCKERFILE3 := runner.dockerfile
 IMAGE1_NAME := iacmaster_$(SERVICE1_NAME)
 IMAGE2_NAME := iacmaster_$(SERVICE2_NAME)
 IMAGE3_NAME := iacmaster_$(SERVICE3_NAME)
+PROTO_SRC_DIR :=./pkg/msg
+PROTO_DST_DIR :=./pkg/protos
 
 # Default target
 .PHONY: all
@@ -67,7 +69,13 @@ run-service: build-service
 	@./$(SERVICE2_BINARY)
 
 # Clean up binaries
+.PHONY: proto
+proto:
+	@echo "Compiling proto files..."
+	@protoc -I=$(PROTO_SRC_DIR) --go_out=$(PROTO_DST_DIR) $(PROTO_SRC_DIR)/*.proto
 .PHONY: clean
 clean:
 	@echo "Cleaning up..."
 	@rm -f $(SERVICE1_BINARY) $(SERVICE2_BINARY) $(SERVICE3_BINARY)
+	@rm -rf $(PROTO_DST_DIR)/*
+	@echo "End cleaning!"

@@ -1,0 +1,8 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg";
+
+
+message Job {
+    string deploymentID = 1;
+}

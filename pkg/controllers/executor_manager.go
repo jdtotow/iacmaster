@@ -93,3 +93,10 @@ func (em *ExecutorManager) StartDeployment(deployment models.Deployment) error {
 	}
 	return nil
 }
+func (em *ExecutorManager) SetExecutorState(executor_name string, state models.ExecutorState) {
+	executor := em.GetExecutor(executor_name)
+	if executor == nil {
+		return
+	}
+	executor.State = state
+}

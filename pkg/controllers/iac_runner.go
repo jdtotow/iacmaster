@@ -4,9 +4,14 @@ import (
 	"bufio"
 	"errors"
 	"log"
+	"log/slog"
 	"os"
 	"os/exec"
+	"reflect"
+	"time"
 
+	"github.com/anthdm/hollywood/actor"
+	"github.com/jdtotow/iacmaster/pkg/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
@@ -284,4 +289,24 @@ func (l *IaCRunner) terraformDestroy(folder string) error {
 	commands = append(commands, "-auto-approve")
 	err := l.runCommand(prog, commands)
 	return err
+}
+
+func (s *IaCRunner) Receive(ctx *actor.Context) {
+	switch m := ctx.Message().(type) {
+	case actor.Started:
+		log.Println("Runner actor started")
+		systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
+		for range 10 {
+			log.Println("Sending message to system")
+			ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Running", Address: "192.168.1.128:8787"})
+			time.Sleep(time.Second * 5)
+		}
+
+	case actor.Initialized:
+		log.Println("Runner actor initialized")
+	case *actor.PID:
+		log.Println("Runner actor has god an ID")
+	default:
+		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
+	}
 }

@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"os"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -65,6 +68,11 @@ func (d *DockerContainerController) CreateContainer(name string, image string, e
 	if err != nil {
 		return "", err
 	}
+	if err := d.cli.ContainerStart(context.Background(), resp.ID, container.StartOptions{}); err != nil {
+		log.Fatalf("Error starting container: %v", err)
+		return "", err
+	}
+
 	return resp.ID, nil
 }
 
@@ -112,10 +120,8 @@ func (d *DockerContainerController) AddDeployment(deployment models.Deployment) 
 			Target: "/tmp",
 		},
 	}
-	var env_vars []string
-	for key, value := range deployment.EnvironmentParameters {
-		env_vars = append(env_vars, key+"="+value)
-	}
+
+	system_address := os.Getenv("IACMASTER_SYSTEM_ADDRESS")
 	executor := models.Executor{
 		Name: deployment.EnvironmentID,
 		State: models.ExecutorState{
@@ -124,6 +130,21 @@ func (d *DockerContainerController) AddDeployment(deployment models.Deployment) 
 		},
 		Kind:        "docker",
 		DepoymentID: deployment.EnvironmentID,
+	}
+	if system_address == "" {
+		log.Println("Please set IACMASTER_SYSTEM_ADDRESS")
+		executor.State.Status = models.FailedStatus
+		err := fmt.Errorf("master system address not set")
+		executor.State.Error = err
+		return executor, err
+	}
+
+	var env_vars []string
+	env_vars = append(env_vars, "IACMASTER_SYSTEM_ADDRESS="+system_address)
+	env_vars = append(env_vars, "IACMASTER_SYSTEM_PORT="+os.Getenv("IACMASTER_SYSTEM_PORT"))
+
+	for key, value := range deployment.EnvironmentParameters {
+		env_vars = append(env_vars, key+"="+value)
 	}
 
 	containerID, err := d.CreateContainer(

@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
 	"slices"
 
+	"github.com/anthdm/hollywood/actor"
+	"github.com/jdtotow/iacmaster/pkg/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
@@ -229,9 +233,13 @@ func (s *System) Handle(message models.HTTPMessage) {
 		deployment.GitData.ProxyUsername = env.IaCArtifact.ProxyUsername
 		deployment.GitData.ProxyPassword = env.IaCExecutionSettings.Token.Token
 		deployment.TerraformVersion = env.IaCExecutionSettings.TerraformVersion
-		err := s.executorManager.StartDeployment(deployment)
-		if err != nil {
-			log.Println(err)
+		if s.IsNodeExecutor() {
+			err := s.executorManager.StartDeployment(deployment)
+			if err != nil {
+				log.Println(err)
+			}
+		} else {
+			// send to node executor peers
 		}
 
 	} else if message.Metadata["action"] == "destroy_env" {
@@ -255,5 +263,21 @@ func (s *System) Handle(message models.HTTPMessage) {
 		}
 	} else {
 		fmt.Println("Unknown action: ", message.Metadata["action"])
+	}
+}
+
+func (s *System) Receive(ctx *actor.Context) {
+	switch m := ctx.Message().(type) {
+	case actor.Started:
+		log.Println("System actor started")
+		s.Start()
+	case actor.Initialized:
+		log.Println("System actor initialized")
+	case *actor.PID:
+		log.Println("System actor has god an ID")
+	case *msg.RunnerStatus:
+		log.Println("Runner status message received")
+	default:
+		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}
 }
