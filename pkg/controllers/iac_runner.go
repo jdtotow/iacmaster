@@ -4,54 +4,41 @@ import (
 	"bufio"
 	"errors"
 	"log"
+	"log/slog"
 	"os"
 	"os/exec"
+	"reflect"
+	"time"
 
+	"github.com/anthdm/hollywood/actor"
+	"github.com/jdtotow/iacmaster/pkg/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
-type ExecutorKind string
-
-const ShellExecutor ExecutorKind = "shell"
-const DockerExecutor ExecutorKind = "docker"
-const KubernetesExecutor ExecutorKind = "kubernetes"
-
-type ExecutorStatus string
-
-const InitStatus ExecutorStatus = "init"
-const RunningStatus ExecutorStatus = "running"
-const FailedStatus ExecutorStatus = "failed"
-const SucceededStatus ExecutorStatus = "succeeded"
-
-type ExecutorState struct {
-	Status ExecutorStatus
-	Error  error
-}
-
-type IaCExecutor struct {
+type IaCRunner struct {
 	Deployment         *models.Deployment
 	artifactController *IaCArtifactController
 	Name               string
-	Kind               ExecutorKind
-	State              ExecutorState
+	Kind               models.ExecutorKind
+	State              models.ExecutorState
 	EnvironmentID      string
 	MandatoryCommands  []string
 }
 
-func CreateIaCExecutor(workingDir, name string, mandatory_commands []string, kind ExecutorKind) *IaCExecutor {
-	return &IaCExecutor{
+func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind models.ExecutorKind) *IaCRunner {
+	return &IaCRunner{
 		Name:              name,
 		Kind:              kind,
 		MandatoryCommands: mandatory_commands,
-		State: ExecutorState{
-			Status: InitStatus,
+		State: models.ExecutorState{
+			Status: models.InitStatus,
 			Error:  nil,
 		},
 		artifactController: CreateIaCArtifactController(workingDir),
 	}
 }
 
-func (l *IaCExecutor) DeleteDeployment(deployment *models.Deployment) {
+func (l *IaCRunner) DeleteDeployment(deployment *models.Deployment) {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	err := l.terraformDestroy(localPath)
 	if err != nil {
@@ -59,12 +46,12 @@ func (l *IaCExecutor) DeleteDeployment(deployment *models.Deployment) {
 	}
 	os.RemoveAll(localPath)
 }
-func (l *IaCExecutor) SetDeployment(deployment *models.Deployment) bool {
+func (l *IaCRunner) SetDeployment(deployment *models.Deployment) bool {
 	if deployment.EnvironmentID != l.EnvironmentID {
 		err := errors.New("deployment id is different from executor environment id")
 		log.Println(err.Error())
 		deployment.SetError(err.Error())
-		l.State.Status = FailedStatus
+		l.State.Status = models.FailedStatus
 		l.State.Error = err
 		return false
 	}
@@ -73,7 +60,7 @@ func (l *IaCExecutor) SetDeployment(deployment *models.Deployment) bool {
 		if err != nil {
 			log.Println(err.Error())
 			deployment.SetError(err.Error())
-			l.State.Status = FailedStatus
+			l.State.Status = models.FailedStatus
 			l.State.Error = err
 			return false
 		}
@@ -83,7 +70,7 @@ func (l *IaCExecutor) SetDeployment(deployment *models.Deployment) bool {
 	if err != nil {
 		log.Println("Error -> ", err.Error())
 		deployment.SetError(err.Error())
-		l.State.Status = FailedStatus
+		l.State.Status = models.FailedStatus
 		l.State.Error = err
 		return false
 	}
@@ -120,12 +107,12 @@ func (l *IaCExecutor) SetDeployment(deployment *models.Deployment) bool {
 	} else {
 		log.Println("Deployment ", deployment.EnvironmentID, " deployment succeeded")
 	}
-	l.State.Status = SucceededStatus
+	l.State.Status = models.SucceededStatus
 	l.State.Error = nil
 	return true
 }
 
-func (l *IaCExecutor) deployEnvironment(deployment *models.Deployment) error {
+func (l *IaCRunner) deployEnvironment(deployment *models.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	log.Println(localPath)
 	err := l.terraformInit(localPath)
@@ -143,11 +130,11 @@ func (l *IaCExecutor) deployEnvironment(deployment *models.Deployment) error {
 	return nil
 }
 
-func (l *IaCExecutor) GetDeployment() *models.Deployment {
+func (l *IaCRunner) GetDeployment() *models.Deployment {
 	return l.Deployment
 }
 
-func (l *IaCExecutor) GetRepo(deployment models.Deployment) error {
+func (l *IaCRunner) GetRepo(deployment models.Deployment) error {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		return l.artifactController.GetRepo(
@@ -175,12 +162,12 @@ func (l *IaCExecutor) GetRepo(deployment models.Deployment) error {
 
 }
 
-func (l *IaCExecutor) CheckIfMandatoryCommandExists(commands string) bool {
+func (l *IaCRunner) CheckIfMandatoryCommandExists(commands string) bool {
 	for _, command := range l.MandatoryCommands {
 		_, err := exec.LookPath(command)
 		if err != nil {
 			log.Println("Command not found : ", command)
-			l.State.Status = FailedStatus
+			l.State.Status = models.FailedStatus
 			l.State.Error = err
 			return false
 		}
@@ -188,7 +175,7 @@ func (l *IaCExecutor) CheckIfMandatoryCommandExists(commands string) bool {
 	return true
 }
 
-func (l *IaCExecutor) runCommand(prog string, commands []string) error {
+func (l *IaCRunner) runCommand(prog string, commands []string) error {
 	cmd := exec.Command(prog, commands...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -209,7 +196,7 @@ func (l *IaCExecutor) runCommand(prog string, commands []string) error {
 	return nil
 }
 
-func (l *IaCExecutor) setTerraformVersion(terraform_version string) error {
+func (l *IaCRunner) setTerraformVersion(terraform_version string) error {
 	prog := "tfenv"
 	var commands []string
 	commands = append(commands, "use")
@@ -218,7 +205,7 @@ func (l *IaCExecutor) setTerraformVersion(terraform_version string) error {
 	return err
 }
 
-func (l *IaCExecutor) azureLogin(deployment *models.Deployment) error {
+func (l *IaCRunner) azureLogin(deployment *models.Deployment) error {
 	//login
 	//az login --service-principal --username $ARM_CLIENT_ID --password $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
 	log.Println("Azure login ...")
@@ -248,7 +235,7 @@ func (l *IaCExecutor) azureLogin(deployment *models.Deployment) error {
 	return err
 }
 
-func (l *IaCExecutor) terraformInit(folder string) error {
+func (l *IaCRunner) terraformInit(folder string) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -259,7 +246,7 @@ func (l *IaCExecutor) terraformInit(folder string) error {
 	return err
 }
 
-func (l *IaCExecutor) terraformPlan(folder, var_file_path string, save bool) error {
+func (l *IaCRunner) terraformPlan(folder, var_file_path string, save bool) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -276,7 +263,7 @@ func (l *IaCExecutor) terraformPlan(folder, var_file_path string, save bool) err
 	return err
 }
 
-func (l *IaCExecutor) terraformApply(folder, var_file_path string, saved bool) error {
+func (l *IaCRunner) terraformApply(folder, var_file_path string, saved bool) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -292,7 +279,7 @@ func (l *IaCExecutor) terraformApply(folder, var_file_path string, saved bool) e
 	return err
 }
 
-func (l *IaCExecutor) terraformDestroy(folder string) error {
+func (l *IaCRunner) terraformDestroy(folder string) error {
 	prog := "terraform"
 	var commands []string
 	if folder != "" {
@@ -302,4 +289,24 @@ func (l *IaCExecutor) terraformDestroy(folder string) error {
 	commands = append(commands, "-auto-approve")
 	err := l.runCommand(prog, commands)
 	return err
+}
+
+func (s *IaCRunner) Receive(ctx *actor.Context) {
+	switch m := ctx.Message().(type) {
+	case actor.Started:
+		log.Println("Runner actor started")
+		systemPID := actor.NewPID("192.168.1.128:3434", "iacmaster/system")
+		for range 10 {
+			log.Println("Sending message to system")
+			ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Running", Address: "192.168.1.128:8787"})
+			time.Sleep(time.Second * 5)
+		}
+
+	case actor.Initialized:
+		log.Println("Runner actor initialized")
+	case *actor.PID:
+		log.Println("Runner actor has god an ID")
+	default:
+		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
+	}
 }

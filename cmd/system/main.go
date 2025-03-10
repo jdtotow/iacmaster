@@ -6,8 +6,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/anthdm/hollywood/actor"
+	"github.com/anthdm/hollywood/remote"
+	"github.com/jdtotow/iacmaster/pkg/actors"
 	"github.com/jdtotow/iacmaster/pkg/api"
-	"github.com/jdtotow/iacmaster/pkg/controllers"
 	"github.com/jdtotow/iacmaster/pkg/initializers"
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
@@ -36,8 +38,19 @@ func main() {
 	channel := make(chan models.HTTPMessage)
 
 	http_server := api.CreateSystemServer(&channel)
-	system := controllers.CreateSystem(&channel)
-
 	go http_server.Start()
-	system.Start()
+	system_port := os.Getenv("IACMASTER_SYSTEM_PORT")
+	system_address := os.Getenv("IACMASTER_SYSTEM_ADDRESS")
+	if system_address == "" {
+		system_address = "0.0.0.0"
+	}
+	if system_port == "" {
+		system_port = "3434"
+	}
+	r := remote.New(system_address+":"+system_port, remote.NewConfig())
+	engine, err := actor.NewEngine(actor.NewEngineConfig().WithRemote(r))
+	if err != nil {
+		log.Fatal("failed to create engine for iacmaster system", "error", err)
+	}
+	engine.Spawn(actors.CreateSystemActor(&channel), "iacmaster", actor.WithID("system"))
 }

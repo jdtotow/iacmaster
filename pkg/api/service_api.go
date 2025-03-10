@@ -16,7 +16,7 @@ import (
 type ServiceServer struct {
 	port   int
 	router *gin.Engine
-	logic  *controllers.IaCExecutor
+	logic  *controllers.IaCRunner
 }
 
 func CreateServiceServer() *ServiceServer {
@@ -27,7 +27,7 @@ func CreateServiceServer() *ServiceServer {
 	return &ServiceServer{
 		port:   port,
 		router: gin.Default(),
-		logic:  controllers.CreateIaCExecutor("/tmp", "local_executor", []string{"terraform", "az"}, controllers.ShellExecutor),
+		logic:  controllers.CreateIaCRunner("/tmp", "local_executor", []string{"terraform", "az"}, models.ShellExecutor),
 	}
 }
 

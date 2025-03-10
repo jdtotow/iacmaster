@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
 	"slices"
 
+	"github.com/anthdm/hollywood/actor"
+	"github.com/jdtotow/iacmaster/pkg/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/jdtotow/iacmaster/pkg/models"
 )
 
@@ -23,6 +27,7 @@ type System struct {
 	channel            *chan models.HTTPMessage
 	peers              []*models.Node
 	serviceUrl         string
+	executorManager    *ExecutorManager
 }
 
 func CreatePeers(settings, myName string) []*models.Node {
@@ -51,6 +56,7 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 	var nodeName string = os.Getenv("NODE_NAME")
 	var nodeType string = os.Getenv("NODE_TYPE")
 	var clusterSetting string = os.Getenv("CLUSTER")
+	var executionPlatform string = os.Getenv("EXECUTION_PLATFORM")
 
 	if nodeName == "" {
 		log.Fatal("Please set NODE_NAME variable")
@@ -62,7 +68,6 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 	var nodeAttributes []models.NodeAttribute
 	if nodeMode == "standalone" {
 		nodeAttributes = []models.NodeAttribute{
-			models.NodeAttribute("log_event"),
 			models.NodeAttribute("manager"),
 			models.NodeAttribute("executor"),
 		}
@@ -76,6 +81,8 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 		Status:     models.NodeStatus("init"),
 		Attributes: nodeAttributes,
 	}
+	pwd, _ := os.Getwd()
+	working_dir := pwd + "/tmp"
 	return &System{
 		node:               n,
 		dbController:       CreateDBController(),
@@ -84,6 +91,7 @@ func CreateSystem(channel *chan models.HTTPMessage) *System {
 		channel:            channel,
 		serviceUrl:         os.Getenv("SERVICE_URL"),
 		peers:              CreatePeers(clusterSetting, nodeName),
+		executorManager:    CreateExecutorManager(working_dir, executionPlatform),
 	}
 }
 func (s *System) UpdateTableSchema() {
@@ -225,19 +233,15 @@ func (s *System) Handle(message models.HTTPMessage) {
 		deployment.GitData.ProxyUsername = env.IaCArtifact.ProxyUsername
 		deployment.GitData.ProxyPassword = env.IaCExecutionSettings.Token.Token
 		deployment.TerraformVersion = env.IaCExecutionSettings.TerraformVersion
-
-		deploy_json, err := json.Marshal(deployment)
-		if err != nil {
-			fmt.Println("Could not send serialize deployment object : ", err.Error())
-		} else {
-			resp, err := http.Post(s.serviceUrl+"/deployment", "application/json", bytes.NewBuffer(deploy_json))
-			log.Println("Request sent to service")
-			if err == nil {
-				fmt.Println(resp.StatusCode)
-			} else {
-				fmt.Println(err.Error())
+		if s.IsNodeExecutor() {
+			err := s.executorManager.StartDeployment(deployment)
+			if err != nil {
+				log.Println(err)
 			}
+		} else {
+			// send to node executor peers
 		}
+
 	} else if message.Metadata["action"] == "destroy_env" {
 		// send request to service
 		deployment := models.Deployment{}
@@ -259,5 +263,21 @@ func (s *System) Handle(message models.HTTPMessage) {
 		}
 	} else {
 		fmt.Println("Unknown action: ", message.Metadata["action"])
+	}
+}
+
+func (s *System) Receive(ctx *actor.Context) {
+	switch m := ctx.Message().(type) {
+	case actor.Started:
+		log.Println("System actor started")
+		s.Start()
+	case actor.Initialized:
+		log.Println("System actor initialized")
+	case *actor.PID:
+		log.Println("System actor has god an ID")
+	case *msg.RunnerStatus:
+		log.Println("Runner status message received")
+	default:
+		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}
 }

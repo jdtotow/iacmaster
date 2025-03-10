@@ -1,7 +1,7 @@
 # Variables
 SERVICE1_NAME := system
 SERVICE2_NAME := service
-SERVICE3_NAME := executor 
+SERVICE3_NAME := runner 
 SERVICE1_CMD := ./cmd/$(SERVICE1_NAME)
 SERVICE2_CMD := ./cmd/$(SERVICE2_NAME)
 SERVIVE3_CMD := ./cmd/$(SERVICE3_NAME)
@@ -10,10 +10,12 @@ SERVICE2_BINARY := bin/$(SERVICE2_NAME)
 SERVICE3_BINARY := bin/$(SERVICE3_NAME)
 DOCKERFILE1 := system.dockerfile
 DOCKERFILE2 := service.dockerfile
-DOCKERFILE3 := executor.dockerfile
+DOCKERFILE3 := runner.dockerfile
 IMAGE1_NAME := iacmaster_$(SERVICE1_NAME)
 IMAGE2_NAME := iacmaster_$(SERVICE2_NAME)
 IMAGE3_NAME := iacmaster_$(SERVICE3_NAME)
+PROTO_SRC_DIR :=./pkg/msg
+PROTO_DST_DIR :=./pkg/protos
 
 # Default target
 .PHONY: all
@@ -35,7 +37,7 @@ build-service:
 
 # Create Docker images
 .PHONY: docker
-docker: docker-system docker-service docker-executor
+docker: docker-system docker-service docker-runner 
 
 .PHONY: docker-system
 docker-system:
@@ -47,8 +49,8 @@ docker-service:
 	@echo "Building Docker image for $(SERVICE2_NAME)..."
 	@docker build -f $(DOCKERFILE2) -t $(IMAGE2_NAME) .
 
-.PHONY: docker-executor
-docker-executor:
+.PHONY: docker-runner
+docker-runner:
 	@echo "Building Docker image for $(SERVICE3_NAME)..."
 	@docker build -f $(DOCKERFILE3) -t $(IMAGE3_NAME) .
 
@@ -67,7 +69,13 @@ run-service: build-service
 	@./$(SERVICE2_BINARY)
 
 # Clean up binaries
+.PHONY: proto
+proto:
+	@echo "Compiling proto files..."
+	@protoc -I=$(PROTO_SRC_DIR) --go_out=$(PROTO_DST_DIR) $(PROTO_SRC_DIR)/*.proto
 .PHONY: clean
 clean:
 	@echo "Cleaning up..."
 	@rm -f $(SERVICE1_BINARY) $(SERVICE2_BINARY) $(SERVICE3_BINARY)
+	@rm -rf $(PROTO_DST_DIR)/*
+	@echo "End cleaning!"

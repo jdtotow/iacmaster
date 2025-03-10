@@ -1,0 +1,25 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg";
+
+
+message GitData {
+    string url = 1;
+    string token = 2;
+    string tokenUsername = 3;
+    string revision = 4;
+    string proxyUrl = 5;
+    string proxyUsername = 6;
+    string proxyPassword = 7;
+}
+
+message Deployment {
+    string workingDir = 1;
+    string homeFolder = 2;
+    string cloudDestination = 3;
+    string terraformVersion = 4;
+    map<string,string> environmentParemeters = 5;
+    string status = 6;
+    GitData gitData = 7;
+    string environmentID = 8;
+}
