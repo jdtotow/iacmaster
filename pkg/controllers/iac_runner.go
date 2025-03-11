@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"log"
 	"log/slog"
 	"os"
 	"os/exec"
 	"reflect"
+	"time"
 
 	"github.com/anthdm/hollywood/actor"
 	"github.com/jdtotow/iacmaster/pkg/models"
@@ -23,6 +25,7 @@ type IaCRunner struct {
 	EnvironmentID      string
 	MandatoryCommands  []string
 	Engine             *actor.Engine
+	CommandTimeout     int //in minute
 }
 
 func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind models.ExecutorKind, engine *actor.Engine) *IaCRunner {
@@ -36,6 +39,7 @@ func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind 
 		},
 		artifactController: CreateIaCArtifactController(workingDir),
 		Engine:             engine,
+		CommandTimeout:     30,
 	}
 }
 
@@ -193,7 +197,10 @@ func (l *IaCRunner) SendLog(content string) {
 }
 
 func (l *IaCRunner) runCommand(prog string, commands []string) error {
-	cmd := exec.Command(prog, commands...)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(l.CommandTimeout))
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, prog, commands...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -211,6 +218,9 @@ func (l *IaCRunner) runCommand(prog string, commands []string) error {
 	}
 	if err := in.Err(); err != nil {
 		log.Printf("error: %s", err)
+	}
+	if ctx.Err() == context.DeadlineExceeded {
+		return errors.New("command timeout")
 	}
 	return nil
 }
