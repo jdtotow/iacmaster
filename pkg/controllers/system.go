@@ -288,9 +288,8 @@ func (s *System) HandlerRunnerStatus(status *msg.RunnerStatus, ctx *actor.Contex
 		executor := s.executorManager.GetExecutor(status.Name)
 		if executor != nil {
 			runner_pid := ctx.Sender()
-			runnerPID := actor.NewPID("192.168.1.128:8787", "runner/"+status.Name)
 			log.Println("Sending deployment object to -> ", runner_pid)
-			ctx.Send(runnerPID, executor.DeploymentObject)
+			ctx.Send(runner_pid, executor.DeploymentObject)
 		}
 	}
 }

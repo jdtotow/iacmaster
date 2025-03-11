@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net"
 	"os"
 	"strings"
 
@@ -20,29 +19,9 @@ func main() {
 
 	mandatory_commands := []string{}
 	mandatory_commands = append(mandatory_commands, strings.Split(mandatory_commands_str, ",")...)
-
-	ifaces, err := net.Interfaces()
-	// handle err
-	var private_ip string
-	for _, i := range ifaces {
-		addrs, _ := i.Addrs()
-		// handle err
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip.IsPrivate() {
-				private_ip = ip.String()
-			}
-			// process IP address
-		}
-	}
-
-	r := remote.New(private_ip+":8787", remote.NewConfig())
+	private_ip := os.Getenv("EXECUTOR_HOST_IP")
+	runner_host_port := os.Getenv("RUNNER_HOST_PORT")
+	r := remote.New(private_ip+":"+runner_host_port, remote.NewConfig())
 	engine, err := actor.NewEngine(actor.NewEngineConfig().WithRemote(r))
 	if err != nil {
 		log.Fatal("failed to create engine for runner", "error", err)

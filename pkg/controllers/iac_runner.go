@@ -26,9 +26,12 @@ type IaCRunner struct {
 	MandatoryCommands  []string
 	Engine             *actor.Engine
 	CommandTimeout     int //in minute
+	SystemPID          *actor.PID
 }
 
 func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind models.ExecutorKind, engine *actor.Engine) *IaCRunner {
+	systemAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
+	systemPID := actor.NewPID(systemAddr, "iacmaster/system")
 	return &IaCRunner{
 		Name:              name,
 		Kind:              kind,
@@ -40,6 +43,7 @@ func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind 
 		artifactController: CreateIaCArtifactController(workingDir),
 		Engine:             engine,
 		CommandTimeout:     30,
+		SystemPID:          systemPID,
 	}
 }
 
@@ -191,9 +195,7 @@ func (l *IaCRunner) CheckIfMandatoryCommandExists(commands string) bool {
 }
 
 func (l *IaCRunner) SendLog(content string) {
-	systemAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
-	systemPID := actor.NewPID(systemAddr, "iacmaster/system")
-	l.Engine.Send(systemPID, &msg.Logging{Origin: l.Name, Content: content})
+	l.Engine.Send(l.SystemPID, &msg.Logging{Origin: l.Name, Content: content})
 }
 
 func (l *IaCRunner) runCommand(prog string, commands []string) error {
@@ -213,7 +215,7 @@ func (l *IaCRunner) runCommand(prog string, commands []string) error {
 
 	for in.Scan() {
 		content := in.Text()
-		log.Println(content) // write each line to your log, or anything you need
+		log.Println(content)
 		l.SendLog(content)
 	}
 	if err := in.Err(); err != nil {
@@ -353,9 +355,7 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("Runner actor started on address -> ", ctx.Engine().Address())
-		systemAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
-		systemPID := actor.NewPID(systemAddr, "iacmaster/system")
-		ctx.Send(systemPID, &msg.RunnerStatus{Name: s.Name, Status: "Ready", Address: "192.168.1.128:8787"})
+		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: "Ready", Address: "192.168.1.128:8787", Error: ""})
 	case actor.Initialized:
 		log.Println("Runner actor initialized")
 	case *actor.PID:
@@ -364,7 +364,9 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 		log.Println("Depoyment object received")
 		if !s.SetDeployment(m) {
 			s.SendLog(s.Deployment.Error)
+			ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: "Failed", Address: "192.168.1.128:8787", Error: s.Deployment.Error})
 		}
+		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: "Completed", Address: "192.168.1.128:8787", Error: ""})
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

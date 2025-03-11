@@ -6,4 +6,5 @@ message RunnerStatus {
     string name = 1;
     string status = 2;
     string address = 3;
+    string error = 4;
 }

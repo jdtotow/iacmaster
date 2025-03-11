@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand/v2"
+	"net"
 	"os"
 
 	"github.com/docker/docker/api/types/container"
@@ -59,13 +61,16 @@ func (d *DockerContainerController) GetContainerByID(containerID string) (*conta
 
 // Create a container
 func (d *DockerContainerController) CreateContainer(name string, image string, env []string, volumeMounts []mount.Mount) (string, error) {
-	d.SelectedPort = rand.IntN(d.Ports[1]-d.Ports[0]) + d.Ports[0]
-	port_str := fmt.Sprintf("%v", d.SelectedPort)
+	port_str := os.Getenv("RUNNER_HOST_PORT")
 	resp, err := d.cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
 			Image: image,
 			Env:   env,
+			Labels: map[string]string{
+				"iacmaster": "true",
+				"type":      "iacmaster/runner",
+			},
 			ExposedPorts: nat.PortSet{
 				"8787/tcp": struct{}{},
 			},
@@ -132,6 +137,33 @@ func (d *DockerContainerController) GetContainerStatus(containerID string) (stri
 	return container.State, nil
 }
 
+func (d *DockerContainerController) GetExecutorHostIP() string {
+	ifaces, err := net.Interfaces()
+	// handle err
+	if err != nil {
+		return ""
+	}
+	var private_ip string
+	for _, i := range ifaces {
+		addrs, _ := i.Addrs()
+		// handle err
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip.IsPrivate() {
+				private_ip = ip.String()
+			}
+			// process IP address
+		}
+	}
+	return private_ip
+}
+
 func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (models.Executor, error) {
 	volumes := []mount.Mount{
 		{
@@ -155,15 +187,17 @@ func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (m
 	if system_address == "" {
 		log.Println("Please set IACMASTER_SYSTEM_ADDRESS")
 		executor.State.Status = models.FailedStatus
-		err := fmt.Errorf("master system address not set")
+		err := errors.New("master system address not set")
 		executor.State.Error = err
 		return executor, err
 	}
-
+	d.SelectedPort = rand.IntN(d.Ports[1]-d.Ports[0]) + d.Ports[0]
 	var env_vars []string
 	env_vars = append(env_vars, "IACMASTER_SYSTEM_ADDRESS="+system_address)
 	env_vars = append(env_vars, "IACMASTER_SYSTEM_PORT="+os.Getenv("IACMASTER_SYSTEM_PORT"))
 	env_vars = append(env_vars, "DEPLOYMENT_ID="+deployment.EnvironmentID)
+	env_vars = append(env_vars, "EXECUTOR_HOST_IP="+d.GetExecutorHostIP())
+	env_vars = append(env_vars, "RUNNER_HOST_PORT="+fmt.Sprintf("%v", d.SelectedPort))
 
 	for key, value := range deployment.EnvironmentParameters {
 		env_vars = append(env_vars, key+"="+value)
