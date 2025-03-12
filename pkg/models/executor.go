@@ -15,11 +15,6 @@ const RunningStatus ExecutorStatus = "running"
 const FailedStatus ExecutorStatus = "failed"
 const SucceededStatus ExecutorStatus = "succeeded"
 
-type ExecutorState struct {
-	Status ExecutorStatus
-	Error  error
-}
-
 type ExecutorController interface {
 	AddExecutor(executor Executor) error
 	RemoveExecutor(executor Executor)
@@ -32,19 +27,19 @@ type ExecutorController interface {
 
 type Executor struct {
 	Kind             ExecutorKind
-	State            ExecutorState
+	Status           ExecutorStatus
 	Name             string
 	DepoymentID      string
 	ObjectID         string //the object can be a container, a pod or a process pid
 	DeploymentObject *msg.Deployment
+	Error            string
 }
 
 func (e *Executor) SetError(err error) {
-	e.State.Error = err
+	e.Error = err.Error()
 }
-func (e *Executor) SetStatus(status ExecutorStatus, err error) {
-	e.State.Status = status
-	e.State.Error = err
+func (e *Executor) SetStatus(status ExecutorStatus) {
+	e.Status = status
 }
 func (e *Executor) SetName(name string) {
 	e.Name = name
@@ -62,6 +57,6 @@ func (e *Executor) GetName() string {
 func (e *Executor) GetDeploymentID() string {
 	return e.DepoymentID
 }
-func (e *Executor) GetState() ExecutorState {
-	return e.State
+func (e *Executor) GetState() ExecutorStatus {
+	return e.Status
 }

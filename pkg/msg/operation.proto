@@ -2,7 +2,6 @@ syntax = "proto3";
 package msg;
 option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
 
-
 message Operation {
     string action = 1;
     string objectID = 2;

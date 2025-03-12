@@ -92,11 +92,8 @@ func (d *KubernetesPodController) AddDeployment(deployment *msg.Deployment) (mod
 	}
 
 	executor := models.Executor{
-		Name: deployment.EnvironmentID,
-		State: models.ExecutorState{
-			Status: models.InitStatus,
-			Error:  nil,
-		},
+		Name:             deployment.EnvironmentID,
+		Status:           models.InitStatus,
 		Kind:             "kubernetes",
 		DepoymentID:      deployment.EnvironmentID,
 		DeploymentObject: deployment,
@@ -104,12 +101,12 @@ func (d *KubernetesPodController) AddDeployment(deployment *msg.Deployment) (mod
 	docker_image := "iacmaster_runner:latest"
 	pod_name, err := d.CreatePod(d.namespace, deployment.EnvironmentID, docker_image, deployment.EnvironmentParameters, []v1.Volume{volumes})
 	if err != nil {
-		executor.State.Status = models.FailedStatus
-		executor.State.Error = err
+		executor.Status = models.FailedStatus
+		executor.Error = err.Error()
 		return executor, err
 	}
 	executor.ObjectID = pod_name
-	executor.State.Status = models.RunningStatus
+	executor.Status = models.RunningStatus
 	return executor, nil
 }
 func (d *KubernetesPodController) RemoveDeployment(podName string) error {

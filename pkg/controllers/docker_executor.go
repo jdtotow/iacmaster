@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand/v2"
+	"log/slog"
 	"net"
 	"os"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -164,6 +165,26 @@ func (d *DockerContainerController) GetExecutorHostIP() string {
 	return private_ip
 }
 
+func (d *DockerContainerController) GetNextAvailablePort() int {
+	port := d.Ports[0]
+	for {
+		if port == d.Ports[1] {
+			slog.Warn("Could not find an available port")
+			return 0
+		}
+		timeout := time.Second
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort(d.GetExecutorHostIP(), fmt.Sprintf("%d", port)), timeout)
+		if err != nil {
+			port++
+		}
+		if conn != nil {
+			defer conn.Close()
+			fmt.Println("Opened", net.JoinHostPort(d.GetExecutorHostIP(), fmt.Sprintf("%d", port)))
+			return port
+		}
+	}
+}
+
 func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (models.Executor, error) {
 	volumes := []mount.Mount{
 		{
@@ -175,23 +196,20 @@ func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (m
 
 	system_address := os.Getenv("IACMASTER_SYSTEM_ADDRESS")
 	executor := models.Executor{
-		Name: deployment.EnvironmentID,
-		State: models.ExecutorState{
-			Status: models.InitStatus,
-			Error:  nil,
-		},
+		Name:             deployment.EnvironmentID,
+		Status:           models.RunningStatus,
 		Kind:             "docker",
 		DepoymentID:      deployment.EnvironmentID,
 		DeploymentObject: deployment,
 	}
 	if system_address == "" {
 		log.Println("Please set IACMASTER_SYSTEM_ADDRESS")
-		executor.State.Status = models.FailedStatus
+		executor.Status = models.FailedStatus
 		err := errors.New("master system address not set")
-		executor.State.Error = err
+		executor.Error = err.Error()
 		return executor, err
 	}
-	d.SelectedPort = rand.IntN(d.Ports[1]-d.Ports[0]) + d.Ports[0]
+	d.SelectedPort = d.GetNextAvailablePort()
 	var env_vars []string
 	env_vars = append(env_vars, "IACMASTER_SYSTEM_ADDRESS="+system_address)
 	env_vars = append(env_vars, "IACMASTER_SYSTEM_PORT="+os.Getenv("IACMASTER_SYSTEM_PORT"))
@@ -210,12 +228,12 @@ func (d *DockerContainerController) AddDeployment(deployment *msg.Deployment) (m
 		volumes,
 	)
 	if err != nil {
-		executor.State.Status = models.FailedStatus
-		executor.State.Error = err
+		executor.Status = models.FailedStatus
+		executor.Error = err.Error()
 		return executor, err
 	}
 	executor.ObjectID = containerID
-	executor.State.Status = models.RunningStatus
+	executor.Status = models.RunningStatus
 	return executor, nil
 }
 func (d *DockerContainerController) RemoveDeployment(deploymentID string) error {

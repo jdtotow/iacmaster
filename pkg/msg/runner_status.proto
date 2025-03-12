@@ -2,9 +2,22 @@ syntax = "proto3";
 package msg;
 option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
 
+enum OperationType {
+    NO_OPERATION = 0;
+    DEPLOYMENT = 1;
+    UNDEPLOYMENT = 2;
+}
+enum Status {
+    INIT = 0;
+    READY = 1;
+    RUNNING = 2;
+    COMPLETED = 3;
+    FAILED = 4;
+}
 message RunnerStatus {
     string name = 1;
-    string status = 2;
-    string address = 3;
-    string error = 4;
+    Status status = 2;
+    string error = 3;
+    string address = 4;
+    OperationType operation = 5;
 }

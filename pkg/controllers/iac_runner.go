@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -21,35 +22,42 @@ type IaCRunner struct {
 	artifactController *IaCArtifactController
 	Name               string
 	Kind               models.ExecutorKind
-	State              models.ExecutorState
+	Status             models.ExecutorStatus
 	EnvironmentID      string
 	MandatoryCommands  []string
 	Engine             *actor.Engine
 	CommandTimeout     int //in minute
 	SystemPID          *actor.PID
+	Error              error
 }
 
 func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind models.ExecutorKind, engine *actor.Engine) *IaCRunner {
 	systemAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
 	systemPID := actor.NewPID(systemAddr, "iacmaster/system")
 	return &IaCRunner{
-		Name:              name,
-		Kind:              kind,
-		MandatoryCommands: mandatory_commands,
-		State: models.ExecutorState{
-			Status: models.InitStatus,
-			Error:  nil,
-		},
+		Name:               name,
+		Kind:               kind,
+		MandatoryCommands:  mandatory_commands,
+		Status:             models.InitStatus,
 		artifactController: CreateIaCArtifactController(workingDir),
 		Engine:             engine,
 		CommandTimeout:     30,
 		SystemPID:          systemPID,
+		Error:              nil,
 	}
 }
 
 func (l *IaCRunner) DeleteDeployment(deployment *msg.Deployment) {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
-	err := l.terraformDestroy(localPath)
+	var err error
+	if deployment.IaCArtifactType == "terraform" {
+		err = l.terraformDestroy(localPath)
+	} else if deployment.IaCArtifactType == "terragrunt" {
+		err = l.terragruntDestroy(localPath)
+	} else {
+		err = errors.New("iac type not supported : " + deployment.IaCArtifactType)
+	}
+
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -62,8 +70,7 @@ func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
 		if err != nil {
 			log.Println(err.Error())
 			deployment.Error = err.Error()
-			l.State.Status = models.FailedStatus
-			l.State.Error = err
+			l.Status = models.FailedStatus
 			return false
 		}
 	}
@@ -72,8 +79,7 @@ func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
 	if err != nil {
 		log.Println("Error -> ", err.Error())
 		deployment.Error = err.Error()
-		l.State.Status = models.FailedStatus
-		l.State.Error = err
+		l.Status = models.FailedStatus
 		return false
 	}
 	//
@@ -114,8 +120,7 @@ func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
 	} else {
 		log.Println("Deployment ", deployment.EnvironmentID, " deployment succeeded")
 	}
-	l.State.Status = models.SucceededStatus
-	l.State.Error = nil
+	l.Status = models.SucceededStatus
 	return true
 }
 
@@ -186,8 +191,8 @@ func (l *IaCRunner) CheckIfMandatoryCommandExists(commands string) bool {
 		_, err := exec.LookPath(command)
 		if err != nil {
 			log.Println("Command not found : ", command)
-			l.State.Status = models.FailedStatus
-			l.State.Error = err
+			l.Status = models.FailedStatus
+			l.Error = err
 			return false
 		}
 	}
@@ -198,11 +203,14 @@ func (l *IaCRunner) SendLog(content string) {
 	l.Engine.Send(l.SystemPID, &msg.Logging{Origin: l.Name, Content: content})
 }
 
-func (l *IaCRunner) runCommand(prog string, commands []string) error {
+func (l *IaCRunner) runCommand(prog, running_dir string, commands []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(l.CommandTimeout))
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, prog, commands...)
+	if running_dir != "" {
+		cmd.Dir = running_dir
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -232,7 +240,7 @@ func (l *IaCRunner) setTerraformVersion(terraform_version string) error {
 	var commands []string
 	commands = append(commands, "use")
 	commands = append(commands, terraform_version)
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, "", commands)
 	return err
 }
 
@@ -251,7 +259,7 @@ func (l *IaCRunner) azureLogin(deployment *msg.Deployment) error {
 	commands = append(commands, "--tenant")
 	commands = append(commands, deployment.EnvironmentParameters["ARM_TENANT_ID"])
 
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, "", commands)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -262,7 +270,7 @@ func (l *IaCRunner) azureLogin(deployment *msg.Deployment) error {
 	commands = append(commands, "--subscription")
 	commands = append(commands, deployment.EnvironmentParameters["ARM_SUBSCRIPTION_ID"])
 
-	err = l.runCommand(prog, commands)
+	err = l.runCommand(prog, "", commands)
 	return err
 }
 
@@ -273,7 +281,7 @@ func (l *IaCRunner) terraformInit(folder string) error {
 		commands = append(commands, "-chdir="+folder)
 	}
 	commands = append(commands, "init")
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, folder, commands)
 	return err
 }
 
@@ -283,18 +291,16 @@ func (l *IaCRunner) terragruntInit(folder string) error {
 	if folder != "" {
 		commands = append(commands, "-chdir="+folder)
 	}
+	commands = append(commands, "--non-interactive")
 	commands = append(commands, "run-all")
 	commands = append(commands, "init")
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, folder, commands)
 	return err
 }
 
 func (l *IaCRunner) terraformPlan(folder, var_file_path string, save bool) error {
 	prog := "terraform"
 	var commands []string
-	if folder != "" {
-		commands = append(commands, "-chdir="+folder)
-	}
 	commands = append(commands, "plan")
 	if save {
 		commands = append(commands, "-out=plan.tfplan")
@@ -302,32 +308,27 @@ func (l *IaCRunner) terraformPlan(folder, var_file_path string, save bool) error
 	if var_file_path != "" {
 		commands = append(commands, "-var-file="+var_file_path)
 	}
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, folder, commands)
 	return err
 }
 
 func (l *IaCRunner) terraformApply(folder, var_file_path string, saved bool) error {
 	prog := "terraform"
 	var commands []string
-	if folder != "" {
-		commands = append(commands, "-chdir="+folder)
-	}
 	commands = append(commands, "apply")
 	commands = append(commands, "-auto-approve")
 
 	if saved {
 		commands = append(commands, "plan.tfplan")
 	}
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, folder, commands)
 	return err
 }
 
 func (l *IaCRunner) terragruntApply(folder, var_file_path string, saved bool) error {
 	prog := "terragrunt"
 	var commands []string
-	if folder != "" {
-		commands = append(commands, "-chdir="+folder)
-	}
+	commands = append(commands, "--non-interactive")
 	commands = append(commands, "run-all")
 	commands = append(commands, "apply")
 	commands = append(commands, "-auto-approve")
@@ -335,27 +336,39 @@ func (l *IaCRunner) terragruntApply(folder, var_file_path string, saved bool) er
 	if saved {
 		commands = append(commands, "plan.tfplan")
 	}
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, folder, commands)
 	return err
 }
 
 func (l *IaCRunner) terraformDestroy(folder string) error {
 	prog := "terraform"
 	var commands []string
-	if folder != "" {
-		commands = append(commands, "-chdir="+folder)
-	}
 	commands = append(commands, "destroy")
 	commands = append(commands, "-auto-approve")
-	err := l.runCommand(prog, commands)
+	err := l.runCommand(prog, folder, commands)
 	return err
+}
+
+func (l *IaCRunner) terragruntDestroy(folder string) error {
+	prog := "terragrunt"
+	var commands []string
+	commands = append(commands, "--non-interactive")
+	commands = append(commands, "run-all")
+	commands = append(commands, "destroy")
+	commands = append(commands, "-auto-approve")
+	err := l.runCommand(prog, folder, commands)
+	return err
+}
+
+func (s *IaCRunner) GetRunnerAddr() string {
+	return fmt.Sprintf("%v:%v", os.Getenv("EXECUTOR_HOST_IP"), os.Getenv("RUNNER_HOST_PORT"))
 }
 
 func (s *IaCRunner) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("Runner actor started on address -> ", ctx.Engine().Address())
-		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: "Ready", Address: "192.168.1.128:8787", Error: ""})
+		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_READY, Error: "", Operation: msg.OperationType_NO_OPERATION, Address: s.GetRunnerAddr()})
 	case actor.Initialized:
 		log.Println("Runner actor initialized")
 	case *actor.PID:
@@ -363,10 +376,10 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 	case *msg.Deployment:
 		log.Println("Depoyment object received")
 		if !s.SetDeployment(m) {
-			s.SendLog(s.Deployment.Error)
-			ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: "Failed", Address: "192.168.1.128:8787", Error: s.Deployment.Error})
+			s.SendLog(s.Deployment.GetError())
+			ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_FAILED, Error: s.Deployment.GetError(), Operation: msg.OperationType_DEPLOYMENT, Address: s.GetRunnerAddr()})
 		}
-		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: "Completed", Address: "192.168.1.128:8787", Error: ""})
+		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_COMPLETED, Error: "", Operation: msg.OperationType_DEPLOYMENT, Address: s.GetRunnerAddr()})
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

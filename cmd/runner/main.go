@@ -19,9 +19,7 @@ func main() {
 
 	mandatory_commands := []string{}
 	mandatory_commands = append(mandatory_commands, strings.Split(mandatory_commands_str, ",")...)
-	private_ip := os.Getenv("EXECUTOR_HOST_IP")
-	runner_host_port := os.Getenv("RUNNER_HOST_PORT")
-	r := remote.New(private_ip+":"+runner_host_port, remote.NewConfig())
+	r := remote.New("127.0.0.1:8787", remote.NewConfig())
 	engine, err := actor.NewEngine(actor.NewEngineConfig().WithRemote(r))
 	if err != nil {
 		log.Fatal("failed to create engine for runner", "error", err)

@@ -283,13 +283,33 @@ func (s *System) Receive(ctx *actor.Context) {
 	}
 }
 
-func (s *System) HandlerRunnerStatus(status *msg.RunnerStatus, ctx *actor.Context) {
-	if status.Status == "Ready" {
-		executor := s.executorManager.GetExecutor(status.Name)
+func (s *System) HandlerRunnerStatus(runner *msg.RunnerStatus, ctx *actor.Context) {
+	if runner.Status == msg.Status_READY {
+		executor := s.executorManager.GetExecutor(runner.Name)
 		if executor != nil {
 			runner_pid := ctx.Sender()
+			senderAddr := runner.Address
+			senderPID := actor.NewPID(senderAddr, "runner/"+runner.Name)
 			log.Println("Sending deployment object to -> ", runner_pid)
-			ctx.Send(runner_pid, executor.DeploymentObject)
+			ctx.Send(senderPID, executor.DeploymentObject)
 		}
+	} else if runner.Status == msg.Status_COMPLETED {
+		executor := s.executorManager.GetExecutor(runner.Name)
+		if executor == nil {
+			slog.Warn("Executor with name ", runner.Name, " was not found")
+			return
+		}
+		executor.SetStatus(models.SucceededStatus)
+		executor.Error = ""
+	} else if runner.Status == msg.Status_FAILED {
+		executor := s.executorManager.GetExecutor(runner.Name)
+		if executor == nil {
+			slog.Warn("Executor with name ", runner.Name, " was not found")
+			return
+		}
+		executor.SetStatus(models.FailedStatus)
+		executor.Error = runner.GetError()
+	} else {
+		slog.Warn("Unknown status")
 	}
 }
