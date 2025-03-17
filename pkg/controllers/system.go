@@ -7,15 +7,14 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/rpc"
 	"os"
 	"reflect"
-	"strings"
-
-	"slices"
 
 	"maps"
 
 	"github.com/anthdm/hollywood/actor"
+	"github.com/jdtotow/iacmaster/pkg/event"
 	"github.com/jdtotow/iacmaster/pkg/models"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
@@ -25,37 +24,13 @@ type System struct {
 	dbController       *DBController
 	seController       *SecurityController
 	artifactController *IaCArtifactController
-	peers              []*models.Node
 	serviceUrl         string
 	executorManager    *ExecutorManager
 }
 
-func CreatePeers(settings, myName string) []*models.Node {
-	//settings="node_name1=addr1,node_name2=addr2"
-	result := []*models.Node{}
-	if len(settings) == 0 {
-		return result
-	}
-	for _, chunk := range strings.Split(settings, ",") {
-		setting := strings.Split(chunk, "=")
-		if setting[0] == myName {
-			continue //skipping myself
-		}
-		n := &models.Node{
-			Type:   models.NodeType("primary"),
-			Name:   setting[0],
-			Addr:   setting[1],
-			Status: models.NodeStatus("unknown"),
-		}
-		result = append(result, n)
-	}
-	log.Printf("%v nodes found in settings\n", len(result))
-	return result
-}
 func CreateSystem() *System {
 	var nodeName string = os.Getenv("NODE_NAME")
 	var nodeType string = os.Getenv("NODE_TYPE")
-	var clusterSetting string = os.Getenv("CLUSTER")
 	var executionPlatform string = os.Getenv("EXECUTION_PLATFORM")
 
 	if nodeName == "" {
@@ -68,19 +43,25 @@ func CreateSystem() *System {
 	var nodeAttributes []models.NodeAttribute
 	if nodeMode == "standalone" {
 		nodeAttributes = []models.NodeAttribute{
-			models.NodeAttribute("manager"),
-			models.NodeAttribute("executor"),
+			models.ManagerNodeAttribute,
+			models.ExecutorNodeAttribute,
 		}
 
 	}
 
 	n := &models.Node{
-		Type:       models.NodeType(nodeType),
+		Type:       models.NodeType(2), //2 as secondary node
 		Name:       nodeName,
-		Mode:       models.NodeMode("standalone"),
-		Status:     models.NodeStatus("init"),
+		Mode:       models.Standalone,
+		Status:     models.Init,
+		Addr:       os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_NODE_PORT"),
 		Attributes: nodeAttributes,
+		Peers:      models.NewPeers(),
+		MaxRetry:   3,
+		EventBus:   event.NewBus(),
 	}
+	n.EventBus.Subscribe(event.LeaderElected, n.PingLeaderContinuously)
+
 	pwd, _ := os.Getwd()
 	working_dir := pwd + "/tmp"
 	return &System{
@@ -89,7 +70,6 @@ func CreateSystem() *System {
 		seController:       CreateSecurityController(),
 		artifactController: CreateIaCArtifactController("./tmp"),
 		serviceUrl:         os.Getenv("SERVICE_URL"),
-		peers:              CreatePeers(clusterSetting, nodeName),
 		executorManager:    CreateExecutorManager(working_dir, executionPlatform),
 	}
 }
@@ -161,8 +141,6 @@ func (s *System) CreateTablesAndMandatoryData() error {
 		return result.Error
 	}
 	s.dbController.db_client.Model(&systemUser).Association("Groups").Append(&group)
-
-	//
 	return nil
 }
 func (s *System) CheckMandatoryTableAndData() bool {
@@ -170,18 +148,43 @@ func (s *System) CheckMandatoryTableAndData() bool {
 }
 
 func (s *System) IsNodeManager() bool {
-	return slices.Contains(s.node.Attributes, models.NodeAttribute("manager"))
+	for attrib := range s.node.Attributes {
+		if attrib == int(models.ManagerNodeAttribute) {
+			return true
+		}
+	}
+	return false
 }
 func (s *System) IsNodeEventLog() bool {
-	return slices.Contains(s.node.Attributes, models.NodeAttribute("log_event"))
+	for attrib := range s.node.Attributes {
+		if attrib == int(models.LoggingNodeAttribute) {
+			return true
+		}
+	}
+	return false
 }
 func (s *System) IsNodeExecutor() bool {
-	return slices.Contains(s.node.Attributes, models.NodeAttribute("executor"))
+	for attrib := range s.node.Attributes {
+		if attrib == int(models.ExecutorNodeAttribute) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *System) Start() {
-	if s.node.Type == models.Primary {
+	listener, err := s.node.NewListener()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer listener.Close()
+	rpcServer := rpc.NewServer()
+	rpcServer.Register(s.node)
+	go rpcServer.Accept(listener)
+	s.node.ConnectToPeers()
+	s.node.Elect()
 
+	if s.node.Type == models.Primary {
 		err := s.CreateTablesAndMandatoryData()
 		if err != nil {
 			log.Fatal("Cannot continue, missing mandatory data")
