@@ -173,6 +173,15 @@ func (s *System) IsNodeExecutor() bool {
 }
 
 func (s *System) Start() {
+	if s.node.Mode == models.Standalone {
+		err := s.CreateTablesAndMandatoryData()
+		if err != nil {
+			log.Fatal("Cannot continue, missing mandatory data")
+		}
+		//
+		log.Println("IaC Master logic started !")
+		return
+	}
 	listener, err := s.node.NewListener()
 	if err != nil {
 		log.Fatal(err)
