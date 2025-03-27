@@ -43,6 +43,7 @@ const (
 	ExecutorNodeAttribute NodeAttribute = iota + 1
 	ManagerNodeAttribute
 	LoggingNodeAttribute
+	APINodeAttribute
 )
 
 type NodeMode uint32

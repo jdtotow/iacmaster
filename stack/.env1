@@ -1,5 +1,5 @@
 API_PORT=3000
-DB_URI="host=192.168.1.128 user=iacmaster password=password dbname=iacmaster port=5430 sslmode=disable"
+DB_URI="host=10.41.2.185 user=iacmaster password=password dbname=iacmaster port=5430 sslmode=disable"
 NODE_NAME=bern
 NODE_TYPE=primary
 CLUSTER="bern=node1,zollikofen=node2,zurich=node3"

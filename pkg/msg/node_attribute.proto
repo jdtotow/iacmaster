@@ -1,0 +1,15 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
+
+enum NodeAttributeType {
+    EXECUTOR = 0;
+    MANAGER = 1;
+    LOGGING = 2;
+    API = 3;
+}
+
+message NodeAttribute {
+    string nodeName = 1;
+    repeated NodeAttributeType attribute = 2;
+}

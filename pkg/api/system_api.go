@@ -27,6 +27,7 @@ type SystemServer struct {
 	systemAddr        string
 	actorEngine       *actor.Engine
 	nodeInfo          *msg.NodeInfo
+	nodeAttributes    *msg.NodeAttribute
 }
 
 func getSupportedEnpoint() []string {
@@ -369,6 +370,9 @@ func (s *SystemServer) Receive(ctx *actor.Context) {
 	case *msg.NodeInfo:
 		s.nodeInfo = m
 		log.Println("API has received node info message received -> ", m)
+	case *msg.NodeAttribute:
+		s.nodeAttributes = m
+		log.Println("API has received node attributes message received -> name: ", m.NodeName, ", attribute: ", m.Attribute)
 	default:
 		slog.Warn("API Server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

@@ -127,10 +127,6 @@ func jsonLoggerMiddleware() gin.HandlerFunc {
 	)
 }
 
-func (p *ReverseProxy) homePage(context *gin.Context) {
-	context.IndentedJSON(http.StatusOK, gin.H{"status": "started"})
-}
-
 func (p *ReverseProxy) UpdatePrimary() error {
 	client := &http.Client{Timeout: 2 * time.Second} // Set timeout to 2 seconds per request
 
@@ -148,9 +144,9 @@ func (p *ReverseProxy) UpdatePrimary() error {
 			fmt.Printf("Error reading response from %s: %v\n", url, err)
 			continue
 		}
-		fmt.Println(string(body), node.Name, node.Addr)
 		var nodeType NodeType
-		if string(body) == "primary" {
+		body_str := strings.ReplaceAll(string(body), "\"", "")
+		if body_str == "primary" {
 			nodeType = Primary
 		} else if string(body) == "secondary" {
 			nodeType = Secondary
@@ -168,7 +164,8 @@ func (p *ReverseProxy) callProxy(context *gin.Context) {
 		context.IndentedJSON(http.StatusNotFound, gin.H{"error": "no primary node found, please try again later"})
 		return
 	}
-	proxy := createReverseProxy(primary_node.Addr)
+	fmt.Println("Forwarding request to -> ", primary_node.Addr)
+	proxy := createReverseProxy("http://" + primary_node.Addr)
 	proxy.ServeHTTP(context.Writer, context.Request)
 }
 
@@ -177,8 +174,7 @@ func (p *ReverseProxy) Start() {
 	p.router.Use(gin.Recovery())
 	p.router.Use(jsonLoggerMiddleware())
 
-	p.router.GET("/", p.homePage)
-	p.router.GET("/api", p.callProxy)
+	p.router.Any("/*any", p.callProxy)
 
 	log.Println("Starting api System Server ...")
 

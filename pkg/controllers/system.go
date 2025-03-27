@@ -28,6 +28,7 @@ type System struct {
 	nodeInfo           *msg.NodeInfo
 	attributes         []models.NodeAttribute
 	started            bool
+	ActorEngine        *actor.Engine
 }
 
 func CreateSystem() *System {
@@ -136,6 +137,7 @@ func (s *System) Start() {
 		s.attributes = append(s.attributes, models.ExecutorNodeAttribute)
 		s.attributes = append(s.attributes, models.ManagerNodeAttribute)
 		s.attributes = append(s.attributes, models.LoggingNodeAttribute)
+		s.attributes = append(s.attributes, models.APINodeAttribute)
 	}
 
 	if s.nodeInfo.NodeType == uint32(models.Primary) {
@@ -145,11 +147,34 @@ func (s *System) Start() {
 		}
 		s.attributes = append(s.attributes, models.ManagerNodeAttribute)
 		s.attributes = append(s.attributes, models.LoggingNodeAttribute)
+		s.attributes = append(s.attributes, models.APINodeAttribute)
 	} else {
 		s.attributes = append(s.attributes, models.ExecutorNodeAttribute)
 	}
 	log.Println("IaC Master logic started !")
 	s.started = true
+	//sending node attribute message to api
+	_msg := &msg.NodeAttribute{
+		NodeName: s.nodeInfo.Name,
+	}
+	for _, attribute := range s.attributes {
+		if attribute == models.ExecutorNodeAttribute {
+			_msg.Attribute = append(_msg.Attribute, msg.NodeAttributeType_EXECUTOR)
+		}
+		if attribute == models.ManagerNodeAttribute {
+			_msg.Attribute = append(_msg.Attribute, msg.NodeAttributeType_MANAGER)
+		}
+		if attribute == models.LoggingNodeAttribute {
+			_msg.Attribute = append(_msg.Attribute, msg.NodeAttributeType_LOGGING)
+		}
+		if attribute == models.APINodeAttribute {
+			_msg.Attribute = append(_msg.Attribute, msg.NodeAttributeType_API)
+		}
+	}
+	senderAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
+	apiPID := actor.NewPID(senderAddr, "iacmaster/api")
+	s.ActorEngine.Send(apiPID, _msg)
+
 }
 
 func (s *System) Handle(operation *msg.Operation) {
@@ -225,6 +250,7 @@ func (s *System) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("System actor started at -> ", ctx.Engine().Address())
+		s.ActorEngine = ctx.Engine()
 	case actor.Stopped:
 		log.Println("System actor has stopped")
 	case *msg.Operation:
