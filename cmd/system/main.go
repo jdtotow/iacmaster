@@ -9,7 +9,6 @@ import (
 	"github.com/anthdm/hollywood/actor"
 	"github.com/anthdm/hollywood/remote"
 	"github.com/jdtotow/iacmaster/pkg/actors"
-	"github.com/jdtotow/iacmaster/pkg/api"
 	"github.com/jdtotow/iacmaster/pkg/initializers"
 )
 
@@ -44,13 +43,12 @@ func main() {
 	}
 	r := remote.New(system_address+":"+system_port, remote.NewConfig())
 	engine, err := actor.NewEngine(actor.NewEngineConfig().WithRemote(r))
-
-	http_server := api.CreateSystemServer(engine)
-	go http_server.Start()
-
 	if err != nil {
 		log.Fatal("failed to create engine for iacmaster system", "error", err)
 	}
+
+	engine.Spawn(actors.CreateAPIActor(), "iacmaster", actor.WithID("api"))
 	engine.Spawn(actors.CreateSystemActor(), "iacmaster", actor.WithID("system"))
+	engine.Spawn(actors.CreateNodeActor(), "iacmaster", actor.WithID("node"))
 	select {}
 }

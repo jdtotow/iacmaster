@@ -1,0 +1,10 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
+
+message NodeInfo {
+    string name = 1;
+    uint32 nodeStatus = 2;
+    uint32 nodeType = 3;
+}
+    

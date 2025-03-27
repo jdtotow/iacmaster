@@ -7,70 +7,41 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"net/rpc"
 	"os"
 	"reflect"
 
 	"maps"
 
+	"slices"
+
 	"github.com/anthdm/hollywood/actor"
-	"github.com/jdtotow/iacmaster/pkg/event"
 	"github.com/jdtotow/iacmaster/pkg/models"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
 type System struct {
-	node               *models.Node
 	dbController       *DBController
 	seController       *SecurityController
 	artifactController *IaCArtifactController
 	serviceUrl         string
 	executorManager    *ExecutorManager
+	nodeInfo           *msg.NodeInfo
+	attributes         []models.NodeAttribute
+	started            bool
 }
 
 func CreateSystem() *System {
-	var nodeName string = os.Getenv("NODE_NAME")
-	var nodeType string = os.Getenv("NODE_TYPE")
 	var executionPlatform string = os.Getenv("EXECUTION_PLATFORM")
-
-	if nodeName == "" {
-		log.Fatal("Please set NODE_NAME variable")
-	}
-	if nodeType == "" {
-		log.Fatal("Please set NODE_TYPE variable")
-	}
-	nodeMode := "standalone"
-	var nodeAttributes []models.NodeAttribute
-	if nodeMode == "standalone" {
-		nodeAttributes = []models.NodeAttribute{
-			models.ManagerNodeAttribute,
-			models.ExecutorNodeAttribute,
-		}
-
-	}
-
-	n := &models.Node{
-		Type:       models.NodeType(2), //2 as secondary node
-		Name:       nodeName,
-		Mode:       models.Standalone,
-		Status:     models.Init,
-		Addr:       os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_NODE_PORT"),
-		Attributes: nodeAttributes,
-		Peers:      models.NewPeers(),
-		MaxRetry:   3,
-		EventBus:   event.NewBus(),
-	}
-	n.EventBus.Subscribe(event.LeaderElected, n.PingLeaderContinuously)
-
 	pwd, _ := os.Getwd()
 	working_dir := pwd + "/tmp"
 	return &System{
-		node:               n,
 		dbController:       CreateDBController(),
 		seController:       CreateSecurityController(),
 		artifactController: CreateIaCArtifactController("./tmp"),
 		serviceUrl:         os.Getenv("SERVICE_URL"),
 		executorManager:    CreateExecutorManager(working_dir, executionPlatform),
+		attributes:         []models.NodeAttribute{},
+		started:            false,
 	}
 }
 func (s *System) UpdateTableSchema() {
@@ -148,59 +119,37 @@ func (s *System) CheckMandatoryTableAndData() bool {
 }
 
 func (s *System) IsNodeManager() bool {
-	for attrib := range s.node.Attributes {
-		if attrib == int(models.ManagerNodeAttribute) {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.attributes, models.ManagerNodeAttribute)
 }
 func (s *System) IsNodeEventLog() bool {
-	for attrib := range s.node.Attributes {
-		if attrib == int(models.LoggingNodeAttribute) {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.attributes, models.LoggingNodeAttribute)
 }
 func (s *System) IsNodeExecutor() bool {
-	for attrib := range s.node.Attributes {
-		if attrib == int(models.ExecutorNodeAttribute) {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.attributes, models.ExecutorNodeAttribute)
 }
 
 func (s *System) Start() {
-	if s.node.Mode == models.Standalone {
-		err := s.CreateTablesAndMandatoryData()
-		if err != nil {
-			log.Fatal("Cannot continue, missing mandatory data")
-		}
-		//
-		log.Println("IaC Master logic started !")
+	if s.started {
 		return
 	}
-	listener, err := s.node.NewListener()
-	if err != nil {
-		log.Fatal(err)
+	if os.Getenv("CLUSTER") == "" {
+		s.attributes = append(s.attributes, models.ExecutorNodeAttribute)
+		s.attributes = append(s.attributes, models.ManagerNodeAttribute)
+		s.attributes = append(s.attributes, models.LoggingNodeAttribute)
 	}
-	defer listener.Close()
-	rpcServer := rpc.NewServer()
-	rpcServer.Register(s.node)
-	go rpcServer.Accept(listener)
-	s.node.ConnectToPeers()
-	s.node.Elect()
 
-	if s.node.Type == models.Primary {
+	if s.nodeInfo.NodeType == uint32(models.Primary) {
 		err := s.CreateTablesAndMandatoryData()
 		if err != nil {
 			log.Fatal("Cannot continue, missing mandatory data")
 		}
-		//
-		log.Println("IaC Master logic started !")
+		s.attributes = append(s.attributes, models.ManagerNodeAttribute)
+		s.attributes = append(s.attributes, models.LoggingNodeAttribute)
+	} else {
+		s.attributes = append(s.attributes, models.ExecutorNodeAttribute)
 	}
+	log.Println("IaC Master logic started !")
+	s.started = true
 }
 
 func (s *System) Handle(operation *msg.Operation) {
@@ -276,7 +225,6 @@ func (s *System) Receive(ctx *actor.Context) {
 	switch m := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("System actor started at -> ", ctx.Engine().Address())
-		s.Start()
 	case actor.Stopped:
 		log.Println("System actor has stopped")
 	case *msg.Operation:
@@ -290,6 +238,12 @@ func (s *System) Receive(ctx *actor.Context) {
 		s.HandlerRunnerStatus(m, ctx)
 	case *msg.Logging:
 		log.Println("[", m.Origin, "] ", m.Content)
+	case *msg.NodeInfo:
+		s.nodeInfo = m
+		log.Println("System has received node info message received -> ", m)
+		if m.NodeStatus == uint32(models.Running) {
+			s.Start()
+		}
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

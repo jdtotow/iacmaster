@@ -23,10 +23,13 @@ func NewPeers() *Peers {
 	}
 }
 
+func (p *Peers) PeersSize() int {
+	return len(p.peerByID)
+}
+
 func (p *Peers) Add(ID string, client *rpc.Client) {
 	p.Lock()
 	defer p.Unlock()
-
 	p.peerByID[ID] = &Peer{ID: ID, RPCClient: client}
 }
 

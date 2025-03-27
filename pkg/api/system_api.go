@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -21,9 +23,10 @@ type SystemServer struct {
 	router            *gin.Engine
 	supportedEndpoint []string
 	dbController      *controllers.DBController
-	actorEngine       *actor.Engine
 	systemPID         string
 	systemAddr        string
+	actorEngine       *actor.Engine
+	nodeInfo          *msg.NodeInfo
 }
 
 func getSupportedEnpoint() []string {
@@ -42,7 +45,7 @@ func getSupportedEnpoint() []string {
 	}
 }
 
-func CreateSystemServer(engine *actor.Engine) *SystemServer {
+func CreateSystemServer() *SystemServer {
 	port, err := strconv.Atoi(os.Getenv("API_PORT"))
 	if err != nil {
 		port = 3000
@@ -51,7 +54,6 @@ func CreateSystemServer(engine *actor.Engine) *SystemServer {
 		port:              port,
 		router:            gin.Default(),
 		supportedEndpoint: getSupportedEnpoint(),
-		actorEngine:       engine,
 		dbController:      controllers.CreateDBController(),
 		systemPID:         "iacmaster/system",
 		systemAddr:        os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT"),
@@ -76,24 +78,14 @@ func jsonLoggerMiddleware() gin.HandlerFunc {
 	)
 }
 
-func (s *SystemServer) Start() error {
+func (s *SystemServer) Start() *SystemServer {
 	url := ":" + fmt.Sprintf("%d", s.port)
 	s.router.Use(gin.Recovery())
 	s.router.Use(jsonLoggerMiddleware())
 
 	s.router.GET("/", s.homePage)
 	s.router.POST("/", s.homePage)
-
-	/*
-		"/settings",
-			"/environment",
-			"/organization",
-			"/iacartifact",
-			"/variable",
-			"/cloudcredential",
-	*/
-	//s.router.POST("/environment/:id/settings", s.createSettings)
-	//s.router.GET("/environment/:id/settings/*setting_id", s.getSettings)
+	s.router.GET("/nodetype", s.getNodeType)
 
 	for _, path := range s.supportedEndpoint {
 		s.router.GET(path, s.skittlesMan)           // get all entries
@@ -107,7 +99,10 @@ func (s *SystemServer) Start() error {
 
 	log.Println("Starting api System Server ...")
 	err := s.router.Run(url)
-	return err
+	if err != nil {
+		return nil
+	}
+	return s
 }
 
 func (s *SystemServer) homePage(context *gin.Context) {
@@ -348,5 +343,33 @@ func (s *SystemServer) deployEnvironment(context *gin.Context) {
 
 	} else {
 
+	}
+}
+
+func (s *SystemServer) getNodeType(context *gin.Context) {
+	nodeType := "primary"
+	if s.nodeInfo.NodeType == uint32(models.Secondary) {
+		nodeType = "secondary"
+	}
+	context.IndentedJSON(http.StatusOK, nodeType)
+}
+
+func (s *SystemServer) Receive(ctx *actor.Context) {
+	switch m := ctx.Message().(type) {
+	case actor.Started:
+		log.Println("API actor started at -> ", ctx.Engine().Address())
+		s.actorEngine = ctx.Engine()
+		go s.Start()
+	case actor.Stopped:
+		log.Println("API actor has stopped")
+	case actor.Initialized:
+		log.Println("API actor initialized")
+	case *actor.PID:
+		log.Println("API actor has god an ID")
+	case *msg.NodeInfo:
+		s.nodeInfo = m
+		log.Println("API has received node info message received -> ", m)
+	default:
+		slog.Warn("API Server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}
 }

@@ -1,14 +1,17 @@
 # Variables
 SERVICE1_NAME := system
 SERVICE3_NAME := runner 
+SERVICE_PROXY := proxy 
 SERVICE1_CMD := ./cmd/$(SERVICE1_NAME)
 SERVIVE3_CMD := ./cmd/$(SERVICE3_NAME)
 SERVICE1_BINARY := bin/$(SERVICE1_NAME)
 SERVICE3_BINARY := bin/$(SERVICE3_NAME)
 DOCKERFILE1 := system.dockerfile
 DOCKERFILE3 := runner.dockerfile
+DOCKERFILEPROXY := proxy.dockerfile 
 IMAGE1_NAME := iacmaster_$(SERVICE1_NAME)
 IMAGE3_NAME := iacmaster_$(SERVICE3_NAME)
+IMAGE_PROXY := iacmaster_$(SERVICE_PROXY)
 PROTO_SRC_DIR :=./pkg/msg
 PROTO_DST_DIR :=./pkg/protos
 
@@ -27,7 +30,7 @@ build-system:
 
 # Create Docker images
 .PHONY: docker
-docker: docker-system docker-runner 
+docker: docker-system docker-runner docker-proxy 
 
 .PHONY: docker-system
 docker-system:
@@ -38,6 +41,11 @@ docker-system:
 docker-runner:
 	@echo "Building Docker image for $(SERVICE3_NAME)..."
 	@docker build -f $(DOCKERFILE3) -t $(IMAGE3_NAME) .
+
+.PHONY: docker-proxy  
+docker-proxy:
+	@echo "Building Docker image for $(SERVICE_PROXY)..."
+	@docker build -f $(DOCKERFILEPROXY) -t $(IMAGE_PROXY) .
 
 # Run services without Docker
 .PHONY: run

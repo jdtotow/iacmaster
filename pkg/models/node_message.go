@@ -9,6 +9,10 @@ func (m *NodeMessage) IsAliveMessage() bool {
 	return m.Type == ALIVE
 }
 
+func (m *NodeMessage) LeaderHeartbeatMessage() bool {
+	return m.Type == LEADERHEARTBEAT
+}
+
 func (m *NodeMessage) IsPongMessage() bool {
 	return m.Type == PONG
 }
@@ -16,10 +20,11 @@ func (m *NodeMessage) IsPongMessage() bool {
 type NodeMessageType uint32
 
 const (
-	PING NodeMessageType = iota + 1
-	PONG
-	ELECTION
+	ELECTION NodeMessageType = iota + 1
 	ALIVE
 	ELECTED
 	OK
+	PING
+	PONG
+	LEADERHEARTBEAT
 )

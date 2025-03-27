@@ -1,0 +1,23 @@
+services:
+  node1:
+    image: iacmaster_system
+    container_name: node1
+    env_file:
+      - .env1
+  node2:
+    image: iacmaster_system
+    container_name: node2
+    env_file:
+      - .env2
+  node3:
+    image: iacmaster_system
+    container_name: node3
+    env_file:
+      - .env3
+  nginx:
+    image: iacmaster_proxy 
+    container_name: proxy
+    ports:
+      - 5454:5454 
+    env_file:
+      - .env1
