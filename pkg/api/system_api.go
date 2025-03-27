@@ -106,6 +106,28 @@ func (s *SystemServer) Start() *SystemServer {
 	return s
 }
 
+func (s *SystemServer) CreateEmptyEntityInstance(objectName string) interface{} {
+	if objectName == "organization" {
+		return &models.Organization{}
+	} else if objectName == "user" {
+		return &models.User{}
+	} else if objectName == "project" {
+		return &models.Project{}
+	} else if objectName == "token" {
+		return &models.Token{}
+	} else if objectName == "iacartifact" {
+		return &models.IaCArtifact{}
+	} else if objectName == "environment" {
+		return &models.Environment{}
+	} else if objectName == "settings" {
+		return &models.IaCExecutionSettings{}
+	} else if objectName == "cloudcredential" {
+		return &models.CloudCredential{}
+	} else {
+		return nil
+	}
+}
+
 func (s *SystemServer) homePage(context *gin.Context) {
 	context.IndentedJSON(
 		http.StatusOK,
@@ -134,172 +156,74 @@ func (s *SystemServer) skittlesMan(context *gin.Context) {
 }
 
 func (s *SystemServer) Handle(context *gin.Context, objectName string) {
-	if context.Request.Method == "POST" {
-		if objectName == "organization" {
-			//create an organization
-			var org *models.Organization = &models.Organization{}
-			err := context.BindJSON(org)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(org)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": org.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "user" {
-			var user *models.User = &models.User{}
-			err := context.BindJSON(user)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(user)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "project" {
-			var project *models.Project = &models.Project{}
-			err := context.BindJSON(project)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(project)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": project.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "token" {
-			var token *models.Token = &models.Token{}
-			err := context.BindJSON(token)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(token)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": token.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "iacartifact" {
-			var arti *models.IaCArtifact = &models.IaCArtifact{}
-			err := context.BindJSON(arti)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(arti)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": arti.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "environment" {
-			var env *models.Environment = &models.Environment{}
-			err := context.BindJSON(env)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(env)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": env.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "settings" {
-			var settings *models.IaCExecutionSettings = &models.IaCExecutionSettings{}
-			err := context.BindJSON(settings)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(settings)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": settings.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else if objectName == "cloudcredential" {
-			var credential *models.CloudCredential = &models.CloudCredential{}
-			err := context.BindJSON(credential)
-			if err != nil {
-				context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-			}
-			result := s.dbController.CreateInstance(credential)
-			if result.Error == nil {
-				context.IndentedJSON(http.StatusCreated, gin.H{"id": credential.ID})
-			} else {
-				context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-			}
-		} else {
-			context.IndentedJSON(http.StatusNotFound, gin.H{"error": "object handler not found"})
-		}
-	} else if context.Request.Method == "GET" {
+	object := s.CreateEmptyEntityInstance(objectName)
+	if object == nil {
+		context.IndentedJSON(http.StatusNotFound, gin.H{})
+		return
+	}
+
+	if context.Request.Method == "GET" {
 		id := context.Param("id")
-		if objectName == "organization" {
-			if id == "" {
-				orgs := []models.Organization{}
-				result := s.dbController.GetAll(&orgs)
-				if result.Error != nil {
-					context.IndentedJSON(http.StatusNotFound, gin.H{})
-					return
-				}
-				context.JSON(http.StatusOK, orgs)
-			} else {
-				org := models.Organization{}
-				result := s.dbController.GetObjectByID(&org, id)
-				if result.Error != nil {
-					context.IndentedJSON(http.StatusNotFound, gin.H{})
-					return
-				}
-				context.JSON(http.StatusOK, org)
+		if id == "" {
+			result := s.dbController.GetAll(&object)
+			if result.Error != nil {
+				context.IndentedJSON(http.StatusNotFound, gin.H{})
+				return
 			}
-		} else if objectName == "user" {
-			if id == "" {
-				users := []models.User{}
-				result := s.dbController.GetAll(&users)
-				if result.Error != nil {
-					context.IndentedJSON(http.StatusNotFound, gin.H{})
-					return
-				}
-				context.JSON(http.StatusOK, users)
-			} else {
-				user := models.User{}
-				result := s.dbController.GetObjectByID(&user, id)
-				if result.Error != nil {
-					context.IndentedJSON(http.StatusNotFound, gin.H{})
-					return
-				}
-				context.JSON(http.StatusOK, user)
-			}
-		} else if objectName == "project" {
-			if id == "" {
-				projects := []models.Project{}
-				result := s.dbController.GetAll(&projects)
-				if result.Error != nil {
-					context.IndentedJSON(http.StatusNotFound, gin.H{})
-					return
-				}
-				context.JSON(http.StatusOK, projects)
-			} else {
-				project := models.Project{}
-				result := s.dbController.GetObjectByID(&project, id)
-				if result.Error != nil {
-					context.IndentedJSON(http.StatusNotFound, gin.H{})
-					return
-				}
-				context.JSON(http.StatusOK, project)
-			}
+			context.JSON(http.StatusOK, object)
 		} else {
-			context.IndentedJSON(http.StatusNotFound, gin.H{})
+			result := s.dbController.GetObjectByID(&object, id)
+			if result.Error != nil {
+				context.IndentedJSON(http.StatusNotFound, gin.H{})
+				return
+			}
+			context.JSON(http.StatusOK, object)
 		}
-
-	} else if context.Request.Method == "PUT" {
-
-	} else if context.Request.Method == "PATCH" {
-
+	} else if context.Request.Method == "POST" {
+		err := context.BindJSON(object)
+		if err != nil {
+			context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		}
+		result := s.dbController.CreateInstance(object)
+		if result.Error == nil {
+			context.IndentedJSON(http.StatusCreated, gin.H{"object": object})
+		} else {
+			context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+		}
 	} else if context.Request.Method == "DELETE" {
+		id := context.Param("id")
+		if id == "" {
+			context.IndentedJSON(http.StatusNotFound, gin.H{})
+			return
+		}
+		result := s.dbController.GetClient().Delete(object, "ID = ?", id)
+		if result.Error == nil {
+			context.IndentedJSON(http.StatusOK, gin.H{"object": object})
+		} else {
+			context.IndentedJSON(http.StatusMethodNotAllowed, gin.H{})
+		}
+	} else if context.Request.Method == "PATCH" {
+		id := context.Param("id")
+		if id == "" {
+			context.IndentedJSON(http.StatusNotFound, gin.H{})
+			return
+		}
+		existing_object := s.CreateEmptyEntityInstance(objectName)
+		result := s.dbController.GetObjectByID(&existing_object, id)
+		if result.Error != nil {
+			context.IndentedJSON(http.StatusNotFound, gin.H{})
+			return
+		}
+		err := context.BindJSON(object)
+		if err != nil {
+			context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		}
+		result = s.dbController.GetClient().Model(&existing_object).Updates(object)
+		if result.Error != nil {
+			context.IndentedJSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		} else {
+			context.IndentedJSON(http.StatusOK, gin.H{})
+		}
 
 	} else {
 		context.IndentedJSON(http.StatusMethodNotAllowed, gin.H{})
