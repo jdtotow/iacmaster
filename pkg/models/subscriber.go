@@ -1,8 +1,6 @@
 package models
 
 import (
-	"slices"
-
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
 
@@ -13,35 +11,53 @@ const (
 	EmailAction
 	SlackAction
 	MessagingAction
+	ActorEngineAction
+	UnknownAction
 )
 
-type Subscriber struct {
-	ID           string
+type Subscription struct {
 	ActionType   ActionType
-	EventTypes   []*msg.EventType
+	EventType    msg.EventType
 	DeploymentID string
 	Destination  string
 }
 
-func NewSubscriber(id string, actionType ActionType, eventTypes []*msg.EventType, destination, deploymentID string) *Subscriber {
+type Subscriber struct {
+	ID            string
+	Subscriptions []*Subscription
+}
+
+func NewSubscriber(id string) *Subscriber {
 	return &Subscriber{
-		ID:           id,
-		ActionType:   actionType,
-		EventTypes:   eventTypes,
-		Destination:  destination,
-		DeploymentID: deploymentID,
+		ID: id,
 	}
+}
+
+func (s *Subscriber) IsSubscribedToType(eventType msg.EventType) bool {
+	for _, sub := range s.Subscriptions {
+		if sub.EventType == eventType {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Subscriber) IsSubscribedToDeployment(eventType msg.EventType, deploymentID string) bool {
+	for _, sub := range s.Subscriptions {
+		if sub.EventType == eventType && sub.DeploymentID == deploymentID {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Subscriber) AddSubscription(sub *Subscription) {
+	if s.IsSubscribedToType(sub.EventType) {
+		return
+	}
+	s.Subscriptions = append(s.Subscriptions, sub)
 }
 
 func (s *Subscriber) GetID() string {
 	return s.ID
-}
-func (s *Subscriber) GetActionType() ActionType {
-	return s.ActionType
-}
-func (s *Subscriber) GetEventTypes() []*msg.EventType {
-	return s.EventTypes
-}
-func (s *Subscriber) IsSubscribedTo(eventType *msg.EventType) bool {
-	return slices.Contains(s.EventTypes, eventType)
 }

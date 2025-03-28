@@ -20,6 +20,7 @@ enum EventType {
     ENTITY_ACCESS = 14;
     ENTITY_DELETION = 15;
     ENTITY_PATCHING = 16;
+    UNKNOWN = 17;
 }
 message Event {
     EventType type = 1;

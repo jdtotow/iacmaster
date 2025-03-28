@@ -15,6 +15,7 @@ type EventHub struct {
 	ActorEngine  *actor.Engine
 	MaxQueueSize int
 	Queue        []*msg.Event
+	Publisher    *models.Publisher
 }
 
 func CreateEventHub() *EventHub {
@@ -39,11 +40,7 @@ func (e *EventHub) AddSubscriber(subscriber *models.Subscriber) error {
 		return nil
 	}
 	e.Subscribers = append(e.Subscribers, subscriber)
-	for _, event := range e.Queue {
-		if subscriber.IsSubscribedTo(&event.Type) {
-			//send to the subscriber
-		}
-	}
+	log.Println("Subscriber added")
 	return nil
 
 }
@@ -59,8 +56,10 @@ func (e *EventHub) RemoveSubscriber(subscriber *models.Subscriber) {
 
 func (e *EventHub) ProcessEvent(event *msg.Event) {
 	for _, subscriber := range e.Subscribers {
-		if subscriber.IsSubscribedTo(&event.Type) {
-			//send to the subscriber
+		for _, subcription := range subscriber.Subscriptions {
+			if subcription.EventType == event.Type {
+				e.Publisher.Publish(event, subcription)
+			}
 		}
 	}
 }
@@ -74,7 +73,57 @@ func (e *EventHub) AddEvent(event *msg.Event) error {
 }
 
 func (e *EventHub) Start() {
+	e.Publisher = models.NewPublisher(e.ActorEngine)
 	log.Println("EventHub logic started !")
+}
+
+func (e *EventHub) ConvertActionTypeString(actionType string) models.ActionType {
+	switch actionType {
+	case "webhookaction":
+		return models.WebhookAction
+	case "emailaction":
+		return models.EmailAction
+	case "slackaction":
+		return models.SlackAction
+	case "messagingaction":
+		return models.MessagingAction
+	case "actorengineaction":
+		return models.ActorEngineAction
+	default:
+		return models.UnknownAction
+	}
+}
+
+func (e *EventHub) ConvertEventTypeString(eventType string) msg.EventType {
+	switch eventType {
+	case "log":
+		return msg.EventType_LOG
+	case "deployment_start":
+		return msg.EventType_DEPLOYMENT_START
+	case "deployment_end":
+		return msg.EventType_DEPLOYMENT_COMPLETED
+	case "deployment_failed":
+		return msg.EventType_DEPLOYMENT_FAILED
+	default:
+		return msg.EventType_UNKNOWN
+	}
+
+}
+
+func (e *EventHub) handleSubscriptionRequest(request *msg.SubscriptionRequest) {
+	subscriber := &models.Subscriber{
+		ID: request.Id,
+	}
+	for _, sub := range request.Subcriptions {
+		subscription := &models.Subscription{
+			ActionType:   e.ConvertActionTypeString(sub.ActionType),
+			EventType:    e.ConvertEventTypeString(sub.EventType),
+			DeploymentID: sub.DeploymentID,
+			Destination:  sub.Destination,
+		}
+		subscriber.AddSubscription(subscription)
+	}
+	e.AddSubscriber(subscriber)
 }
 
 func (e *EventHub) Receive(ctx *actor.Context) {
@@ -91,6 +140,8 @@ func (e *EventHub) Receive(ctx *actor.Context) {
 		log.Println("EventHub actor has god an ID")
 	case *msg.Event:
 		log.Println("An event us received")
+	case *msg.SubscriptionRequest:
+		e.handleSubscriptionRequest(m)
 	default:
 		slog.Warn("EventHub got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

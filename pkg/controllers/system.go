@@ -184,6 +184,25 @@ func (s *System) Start() {
 	s.ActorEngine.Send(apiPID, _msg)
 }
 
+func (s *System) SendSubscriptionRequest(subscriber_id string, subscriptions []*msg.Subscription) {
+	req := &msg.SubscriptionRequest{
+		Id:           subscriber_id,
+		Subcriptions: subscriptions,
+	}
+	s.ActorEngine.Send(s.EventHubActorPID, &req)
+}
+func (s *System) Subscribe() {
+	subscriptions := []*msg.Subscription{
+		{
+			ActionType:   "actorengineaction",
+			Destination:  "192.168.1.103:iacmaster/system",
+			DeploymentID: "",
+			EventType:    "log",
+		},
+	}
+	s.SendSubscriptionRequest("system", subscriptions)
+}
+
 func (s *System) Handle(operation *msg.Operation) {
 	log.Println("message -> ", operation)
 	if operation.Action == "create_env" {
@@ -279,6 +298,10 @@ func (s *System) Receive(ctx *actor.Context) {
 		}
 		if s.nodeInfo.NodeType == uint32(models.Primary) {
 			s.EventHubActorPID = ctx.Engine().Spawn(CreateEventHubActor(), "iacmaster", actor.WithID("eventhub"))
+			if s.EventHubActorPID != nil {
+				s.Subscribe()
+			}
+
 		} else {
 			if s.EventHubActorPID != nil {
 				ctx.Engine().Stop(s.EventHubActorPID)

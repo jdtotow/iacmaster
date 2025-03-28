@@ -96,7 +96,7 @@ func (s *SystemServer) Start() *SystemServer {
 		s.router.PATCH(path+"/:id", s.skittlesMan)  //edit one field of the entry identify by uuid
 		s.router.PUT(path+"/:id", s.skittlesMan)    //replace the entiere object identify by uuid
 	}
-	s.router.POST("/environment/:id/*action", s.deployEnvironment)
+	s.router.POST("/environment/:id/*action", s.environmentActions)
 
 	log.Println("Starting api System Server ...")
 	err := s.router.Run(url)
@@ -230,7 +230,7 @@ func (s *SystemServer) Handle(context *gin.Context, objectName string) {
 	}
 }
 
-func (s *SystemServer) deployEnvironment(context *gin.Context) {
+func (s *SystemServer) environmentActions(context *gin.Context) {
 	id := context.Param("id")
 	action := context.Param("action")
 	env := models.Environment{}
@@ -246,17 +246,6 @@ func (s *SystemServer) deployEnvironment(context *gin.Context) {
 		operation.ObjectID = id
 		systemPID := actor.NewPID(s.systemAddr, s.systemPID)
 		s.actorEngine.Send(systemPID, &operation)
-
-	} else if action == "/variables" {
-		form, _ := context.MultipartForm()
-		files := form.File["file"]
-		pwd, _ := os.Getwd()
-		environment_id := context.PostForm("environment_id")
-		for _, file := range files {
-			log.Println(file.Filename)
-			// Upload the file to specific dst.
-			context.SaveUploadedFile(file, pwd+"/tmp/"+environment_id+".tfvars")
-		}
 
 	} else if action == "/destroy" {
 		log.Println("Destroying of the environment with ID", id)

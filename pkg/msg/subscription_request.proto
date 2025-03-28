@@ -1,0 +1,15 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
+
+message Subscription {
+    string actionType = 1;
+    string eventType = 2;
+    string deploymentID = 3;
+    string destination = 4;
+}
+
+message SubscriptionRequest {
+    string id = 1;
+    repeated Subscription subcriptions = 2;
+}
