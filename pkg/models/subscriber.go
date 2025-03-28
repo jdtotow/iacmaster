@@ -16,18 +16,20 @@ const (
 )
 
 type Subscriber struct {
-	ID          string
-	ActionType  ActionType
-	EventTypes  []*msg.EventType
-	Destination string
+	ID           string
+	ActionType   ActionType
+	EventTypes   []*msg.EventType
+	DeploymentID string
+	Destination  string
 }
 
-func NewSubscriber(id string, actionType ActionType, eventTypes []*msg.EventType, destination string) *Subscriber {
+func NewSubscriber(id string, actionType ActionType, eventTypes []*msg.EventType, destination, deploymentID string) *Subscriber {
 	return &Subscriber{
-		ID:          id,
-		ActionType:  actionType,
-		EventTypes:  eventTypes,
-		Destination: destination,
+		ID:           id,
+		ActionType:   actionType,
+		EventTypes:   eventTypes,
+		Destination:  destination,
+		DeploymentID: deploymentID,
 	}
 }
 
