@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/anthdm/hollywood/actor"
-	"github.com/jdtotow/iacmaster/pkg/event"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 	"github.com/madflojo/tasks"
 )
@@ -65,7 +64,6 @@ type Node struct {
 	Mode                   NodeMode
 	Addr                   string
 	Peers                  *Peers
-	EventBus               event.Bus
 	Attributes             []NodeAttribute
 	MaxRetry               int
 	ActorEngine            *actor.Engine
@@ -104,7 +102,6 @@ func NewNode() *Node {
 		Attributes:             []NodeAttribute{},
 		Peers:                  NewPeers(),
 		MaxRetry:               3,
-		EventBus:               event.NewBus(),
 		LeaderHeartbeatTimeout: GenerateLeaderHeartbeatTimeout(),
 		HeartbeatInterval:      time.Duration(5 * time.Second),
 		scheduler:              tasks.New(),

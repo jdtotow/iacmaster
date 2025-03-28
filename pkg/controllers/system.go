@@ -189,7 +189,7 @@ func (s *System) SendSubscriptionRequest(subscriber_id string, subscriptions []*
 		Id:           subscriber_id,
 		Subcriptions: subscriptions,
 	}
-	s.ActorEngine.Send(s.EventHubActorPID, &req)
+	s.ActorEngine.Send(s.EventHubActorPID, req)
 }
 func (s *System) Subscribe() {
 	subscriptions := []*msg.Subscription{
