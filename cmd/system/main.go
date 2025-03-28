@@ -50,5 +50,6 @@ func main() {
 	engine.Spawn(actors.CreateAPIActor(), "iacmaster", actor.WithID("api"))
 	engine.Spawn(actors.CreateSystemActor(), "iacmaster", actor.WithID("system"))
 	engine.Spawn(actors.CreateNodeActor(), "iacmaster", actor.WithID("node"))
+
 	select {}
 }

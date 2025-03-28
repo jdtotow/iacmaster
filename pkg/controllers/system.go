@@ -29,6 +29,7 @@ type System struct {
 	attributes         []models.NodeAttribute
 	started            bool
 	ActorEngine        *actor.Engine
+	EventHubActorPID   *actor.PID
 }
 
 func CreateSystem() *System {
@@ -45,6 +46,13 @@ func CreateSystem() *System {
 		started:            false,
 	}
 }
+
+func CreateEventHubActor() actor.Producer {
+	return func() actor.Receiver {
+		return CreateEventHub()
+	}
+}
+
 func (s *System) UpdateTableSchema() {
 	s.dbController.db_client.AutoMigrate(
 		&models.User{},
@@ -174,7 +182,6 @@ func (s *System) Start() {
 	senderAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
 	apiPID := actor.NewPID(senderAddr, "iacmaster/api")
 	s.ActorEngine.Send(apiPID, _msg)
-
 }
 
 func (s *System) Handle(operation *msg.Operation) {
@@ -270,6 +277,14 @@ func (s *System) Receive(ctx *actor.Context) {
 		if m.NodeStatus == uint32(models.Running) {
 			s.Start()
 		}
+		if s.nodeInfo.NodeType == uint32(models.Primary) {
+			s.EventHubActorPID = ctx.Engine().Spawn(CreateEventHubActor(), "iacmaster", actor.WithID("eventhub"))
+		} else {
+			if s.EventHubActorPID != nil {
+				ctx.Engine().Stop(s.EventHubActorPID)
+			}
+		}
+
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

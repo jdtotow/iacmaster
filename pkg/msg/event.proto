@@ -1,0 +1,30 @@
+syntax = "proto3";
+package msg;
+option go_package = "github.com/jdtotow/iacmaster/pkg/msg;msg";
+
+enum EventType {
+    LOG = 0;
+    DEPLOYMENT_START = 1;
+    DEPLOYMENT_COMPLETED = 2;
+    DEPLOYMENT_FAILED = 3;
+    NODE_START = 4;
+    NODE_STOP = 5;
+    RUNNER_START = 6;
+    RUNNER_RUNNING = 7;
+    RUNNER_COMPLETED = 8;
+    RUNNER_FAILED = 9;
+    DRIFT_DETECTED = 10;
+    NODE_ELECTION_START = 11;
+    NEW_LEADER_ELECTED = 12;
+    ENTITY_CREATION = 13;
+    ENTITY_ACCESS = 14;
+    ENTITY_DELETION = 15;
+    ENTITY_PATCHING = 16;
+}
+message Event {
+    EventType type = 1;
+    uint64 timestamp = 2;
+    string source = 3;
+    string hostname = 4;
+    string data = 5;
+}
