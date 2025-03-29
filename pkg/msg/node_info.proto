@@ -6,5 +6,6 @@ message NodeInfo {
     string name = 1;
     uint32 nodeStatus = 2;
     uint32 nodeType = 3;
+    string addr = 4;
 }
     

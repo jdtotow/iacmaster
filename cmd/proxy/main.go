@@ -179,7 +179,7 @@ func (p *ReverseProxy) Start() {
 	log.Println("Starting api System Server ...")
 
 	_ = p.scheduler.AddWithID("UpdateNodeType", &tasks.Task{
-		Interval: time.Duration(10 * time.Second),
+		Interval: time.Duration(30 * time.Second),
 		TaskFunc: p.UpdatePrimary,
 		ErrFunc:  nil,
 	})

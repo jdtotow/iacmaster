@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 
 	"maps"
 
@@ -30,6 +31,7 @@ type System struct {
 	started            bool
 	ActorEngine        *actor.Engine
 	EventHubActorPID   *actor.PID
+	ClusterInfo        *models.ClusterInfo
 }
 
 func CreateSystem() *System {
@@ -146,6 +148,25 @@ func (s *System) Start() {
 		s.attributes = append(s.attributes, models.ManagerNodeAttribute)
 		s.attributes = append(s.attributes, models.LoggingNodeAttribute)
 		s.attributes = append(s.attributes, models.APINodeAttribute)
+	} else {
+
+		s.ClusterInfo = models.CreateClusterInfo("iacmaster")
+
+		for _, chunk := range strings.Split(os.Getenv("CLUSTER"), ",") {
+			setting := strings.Split(chunk, "=")
+			nodeName := setting[0]
+			if os.Getenv("NODE_NAME") == nodeName {
+				continue //skipping myself
+			}
+			nodeAddr := setting[1] + ":3000"
+			node := &msg.NodeInfo{
+				Name:     nodeName,
+				Addr:     nodeAddr,
+				NodeType: uint32(models.Secondary),
+			}
+			s.ClusterInfo.AddNode(node)
+		}
+		log.Println("Cluster info created")
 	}
 
 	if s.nodeInfo.NodeType == uint32(models.Primary) {
@@ -195,7 +216,7 @@ func (s *System) Subscribe() {
 	subscriptions := []*msg.Subscription{
 		{
 			ActionType:   "actorengineaction",
-			Destination:  "192.168.1.103:iacmaster/system",
+			Destination:  s.nodeInfo.Addr + ":iacmaster/system",
 			DeploymentID: "",
 			EventType:    "log",
 		},
@@ -248,7 +269,9 @@ func (s *System) Handle(operation *msg.Operation) {
 			}
 		} else {
 			log.Println("Deployment request must be sent to node executor")
-			// send to node executor peers
+			random_node := s.ClusterInfo.GetRandomNode()
+			destinationPID := s.ClusterInfo.GetPIDNode(random_node.Name, "system")
+			s.ActorEngine.Send(destinationPID, &deployment)
 		}
 
 	} else if operation.Action == "destroy_env" {

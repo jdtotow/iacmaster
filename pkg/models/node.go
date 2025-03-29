@@ -361,6 +361,7 @@ func (node *Node) SendNodeInfoMessage(status NodeStatus) {
 		Name:       node.Name,
 		NodeStatus: uint32(status),
 		NodeType:   uint32(node.Type),
+		Addr:       os.Getenv("IACMASTER_SYSTEM_ADDRESS"),
 	}
 	senderAddr := os.Getenv("IACMASTER_SYSTEM_ADDRESS") + ":" + os.Getenv("IACMASTER_SYSTEM_PORT")
 	systemPID := actor.NewPID(senderAddr, "iacmaster/system")
