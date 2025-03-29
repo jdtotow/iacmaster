@@ -231,6 +231,8 @@ func (s *System) Handle(operation *msg.Operation) {
 		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deployment.IaCArtifactType = env.IaCArtifact.Type
+		deployment.DetectDrift = env.IaCExecutionSettings.DetectDrift
+		deployment.AutoRedeployOnGitChange = env.IaCExecutionSettings.AutoRedeployOnGitChange
 		git_data.Url = env.IaCArtifact.ScmUrl
 		git_data.Revision = env.IaCArtifact.Revision
 		git_data.ProxyUrl = env.IaCArtifact.ProxyUrl
@@ -245,6 +247,7 @@ func (s *System) Handle(operation *msg.Operation) {
 				log.Println(err)
 			}
 		} else {
+			log.Println("Deployment request must be sent to node executor")
 			// send to node executor peers
 		}
 
@@ -290,6 +293,12 @@ func (s *System) Receive(ctx *actor.Context) {
 		s.HandlerRunnerStatus(m, ctx)
 	case *msg.Logging:
 		log.Println("[", m.Origin, "] ", m.Content)
+	case *msg.Deployment:
+		log.Println("Deployment object received")
+		err := s.executorManager.StartDeployment(m)
+		if err != nil {
+			log.Println(err)
+		}
 	case *msg.NodeInfo:
 		s.nodeInfo = m
 		log.Println("System has received node info message received -> ", m)

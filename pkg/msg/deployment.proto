@@ -25,4 +25,6 @@ message Deployment {
     string Error = 9;
     repeated string Activities = 10;
     string IaCArtifactType = 11;
+    bool DetectDrift = 12;
+    bool AutoRedeployOnGitChange = 13;
 }
