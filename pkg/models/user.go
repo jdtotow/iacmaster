@@ -7,15 +7,14 @@ import (
 
 type User struct {
 	gorm.Model
-	Fullname       string `json:"fullname"`
-	Email          string `gorm:"uniqueIndex"`
-	Username       string `gorm:"uniqueIndex" json:"username"`
-	Password       string `json:"password"`
-	OrganizationID uuid.UUID
-	Organization   Organization `json:"organization"`
-	Groups         []Group      `json:"groups" gorm:"many2many:user_groups;"`
-	Roles          []Role
-	ID             uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Fullname      string         `json:"fullname"`
+	Email         string         `gorm:"uniqueIndex"`
+	Username      string         `gorm:"uniqueIndex" json:"username"`
+	Password      string         `json:"password"`
+	Organizations []Organization `json:"organization" gorm:"many2many:user_organizations;"`
+	Groups        []Group        `json:"groups" gorm:"many2many:user_groups;"`
+	Roles         []Role         `json:"roles" gorm:"many2many:user_roles;"`
+	ID            uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 // GetFullname
@@ -74,9 +73,17 @@ func (user User) HasRole(role Role) bool {
 	}
 	return false
 }
-func (user *User) SetOrganization(org Organization) {
-	user.Organization = org
+func (user *User) IsMemberOfOrganization(org Organization) bool {
+	for _, _org := range user.Organizations {
+		if _org.Name == org.Name {
+			return true
+		}
+	}
+	return false
 }
-func (user User) GetOrganization() Organization {
-	return user.Organization
+func (user *User) AddOrganization(org Organization) {
+	user.Organizations = append(user.Organizations, org)
+}
+func (user User) GetOrganizations() []Organization {
+	return user.Organizations
 }

@@ -7,10 +7,9 @@ import (
 
 type Role struct {
 	gorm.Model
-	Name   string `json:"name"`
-	UserID uuid.UUID
-	User   User
-	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name  string    `json:"name"`
+	Users []User    `json:"users" gorm:"many2many:user_roles;"`
+	ID    uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 }
 
 func (r Role) GetName() string {
