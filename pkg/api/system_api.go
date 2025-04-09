@@ -10,9 +10,12 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/anthdm/hollywood/actor"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jdtotow/iacmaster/pkg/controllers"
 	"github.com/jdtotow/iacmaster/pkg/models"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
@@ -83,6 +86,7 @@ func (s *SystemServer) Start() *SystemServer {
 	url := ":" + fmt.Sprintf("%d", s.port)
 	s.router.Use(gin.Recovery())
 	s.router.Use(jsonLoggerMiddleware())
+	s.router.Use(cors.Default())
 
 	s.router.GET("/", s.homePage)
 	s.router.POST("/", s.homePage)
@@ -155,6 +159,45 @@ func (s *SystemServer) skittlesMan(context *gin.Context) {
 	context.IndentedJSON(http.StatusNotFound, gin.H{})
 }
 
+func (s *SystemServer) VerifyJWT(tokenStr string) (*jwt.MapClaims, error) {
+	jwtSecret := []byte(os.Getenv("SECRET_KEY"))
+	token, err := jwt.ParseWithClaims(tokenStr, &jwt.MapClaims{}, func(token *jwt.Token) (any, error) {
+		return jwtSecret, nil
+	})
+
+	if claims, ok := token.Claims.(*jwt.MapClaims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return nil, err
+	}
+}
+
+func (s *SystemServer) CreateJWTToken(userObject any) (string, error) {
+
+	user := userObject.(*models.User)
+	expirationTime := time.Now().Add(24 * time.Hour)
+	jwtSecret := []byte(os.Getenv("SECRET_KEY"))
+	// Create the claims
+	claims := jwt.MapClaims{
+		"username": user.Username,
+		"email":    user.Email,
+		"exp":      expirationTime.Unix(),
+		"iat":      time.Now().Unix(),
+		"iss":      "iacmaster",
+	}
+
+	// Create the token using the HS256 signing method
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with the secret
+	tokenString, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
 func (s *SystemServer) Handle(context *gin.Context, objectName string) {
 	object := s.CreateEmptyEntityInstance(objectName)
 	if object == nil {
@@ -186,6 +229,16 @@ func (s *SystemServer) Handle(context *gin.Context, objectName string) {
 		}
 		result := s.dbController.CreateInstance(object)
 		if result.Error == nil {
+			if objectName == "user" {
+				token, err := s.CreateJWTToken(object)
+				if err != nil {
+					context.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				} else {
+					context.IndentedJSON(http.StatusCreated, gin.H{"token": token, "object": object})
+					return
+				}
+			}
 			context.IndentedJSON(http.StatusCreated, gin.H{"object": object})
 		} else {
 			context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})

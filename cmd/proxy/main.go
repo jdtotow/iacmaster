@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/madflojo/tasks"
@@ -173,6 +174,7 @@ func (p *ReverseProxy) Start() {
 	url := ":" + p.Port
 	p.router.Use(gin.Recovery())
 	p.router.Use(jsonLoggerMiddleware())
+	p.router.Use(cors.Default())
 
 	p.router.Any("/*any", p.callProxy)
 

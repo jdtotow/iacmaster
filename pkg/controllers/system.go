@@ -92,11 +92,10 @@ func (s *System) CreateTablesAndMandatoryData() error {
 		return result.Error
 	}
 	systemUser := models.User{
-		Email:          "system@iacmaster",
-		Fullname:       "IaCMaster",
-		Username:       "iacmaster",
-		Password:       "--",
-		OrganizationID: org.ID,
+		Email:    "system@iacmaster",
+		Fullname: "IaCMaster",
+		Username: "iacmaster",
+		Password: "--",
 	}
 	result = s.dbController.CreateInstance(&systemUser)
 	if result.Error != nil {
@@ -106,8 +105,7 @@ func (s *System) CreateTablesAndMandatoryData() error {
 
 	//verify the system role
 	role := models.Role{
-		Name:   "system",
-		UserID: systemUser.ID,
+		Name: "system",
 	}
 	result = s.dbController.CreateInstance(&role)
 	if result.Error != nil {
