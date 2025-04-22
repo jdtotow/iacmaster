@@ -27,4 +27,5 @@ message Deployment {
     string IaCArtifactType = 11;
     bool DetectDrift = 12;
     bool AutoRedeployOnGitChange = 13;
+    string Action = 14;
 }

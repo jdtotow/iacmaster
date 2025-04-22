@@ -174,7 +174,14 @@ func (p *ReverseProxy) Start() {
 	url := ":" + p.Port
 	p.router.Use(gin.Recovery())
 	p.router.Use(jsonLoggerMiddleware())
-	p.router.Use(cors.Default())
+	p.router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"}, // Your Vue.js dev server address
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	p.router.Any("/*any", p.callProxy)
 

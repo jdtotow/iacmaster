@@ -47,7 +47,7 @@ func CreateIaCRunner(workingDir, name string, mandatory_commands []string, kind 
 	}
 }
 
-func (l *IaCRunner) DeleteDeployment(deployment *msg.Deployment) {
+func (l *IaCRunner) DeleteDeployment(deployment *msg.Deployment) bool {
 	localPath := l.artifactController.TmpFolderPath + "/" + deployment.EnvironmentID + "/" + deployment.HomeFolder
 	var err error
 	if deployment.IaCArtifactType == "terraform" {
@@ -59,9 +59,11 @@ func (l *IaCRunner) DeleteDeployment(deployment *msg.Deployment) {
 	}
 
 	if err != nil {
-		log.Println(err.Error())
+		deployment.Error = err.Error()
+		return false
 	}
 	os.RemoveAll(localPath)
+	return true
 }
 func (l *IaCRunner) SetDeployment(deployment *msg.Deployment) bool {
 	l.Deployment = deployment
@@ -374,12 +376,24 @@ func (s *IaCRunner) Receive(ctx *actor.Context) {
 	case *actor.PID:
 		log.Println("Runner actor has god an ID")
 	case *msg.Deployment:
-		log.Println("Depoyment object received")
-		if !s.SetDeployment(m) {
-			s.SendLog(s.Deployment.GetError())
-			ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_FAILED, Error: s.Deployment.GetError(), Operation: msg.OperationType_DEPLOYMENT, Address: s.GetRunnerAddr()})
+		log.Println("Deployment object received")
+		if m.Action == "create_env" {
+			if !s.SetDeployment(m) {
+				s.SendLog(s.Deployment.GetError())
+				ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_FAILED, Error: s.Deployment.GetError(), Operation: msg.OperationType_DEPLOYMENT, Address: s.GetRunnerAddr()})
+				return
+			}
+			ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_COMPLETED, Error: "", Operation: msg.OperationType_DEPLOYMENT, Address: s.GetRunnerAddr()})
+		} else if m.Action == "destroy_env" {
+			if !s.DeleteDeployment(m) {
+				s.SendLog(s.Deployment.GetError())
+				ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_FAILED, Error: s.Deployment.GetError(), Operation: msg.OperationType_UNDEPLOYMENT, Address: s.GetRunnerAddr()})
+				return
+			}
+			ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_COMPLETED, Error: "", Operation: msg.OperationType_UNDEPLOYMENT, Address: s.GetRunnerAddr()})
+		} else {
 		}
-		ctx.Send(s.SystemPID, &msg.RunnerStatus{Name: s.Name, Status: msg.Status_COMPLETED, Error: "", Operation: msg.OperationType_DEPLOYMENT, Address: s.GetRunnerAddr()})
+
 	default:
 		slog.Warn("server got unknown message", "msg", m, "type", reflect.TypeOf(m).String())
 	}

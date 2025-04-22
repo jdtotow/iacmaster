@@ -56,7 +56,7 @@ func CreateEventHubActor() actor.Producer {
 }
 
 func (s *System) UpdateTableSchema() {
-	s.dbController.db_client.AutoMigrate(
+	s.dbController.Db_client.AutoMigrate(
 		&models.User{},
 		&models.Role{},
 		&models.Project{},
@@ -68,6 +68,7 @@ func (s *System) UpdateTableSchema() {
 		&models.Group{},
 		&models.Environment{},
 		&models.CloudCredential{},
+		&models.Access{},
 	)
 }
 func (s *System) CreateTablesAndMandatoryData() error {
@@ -78,7 +79,7 @@ func (s *System) CreateTablesAndMandatoryData() error {
 	sys := models.IaCSystem{
 		Name: "IaCSystem",
 	}
-	result := s.dbController.db_client.Create(&sys)
+	result := s.dbController.Db_client.Create(&sys)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return result.Error
@@ -86,7 +87,7 @@ func (s *System) CreateTablesAndMandatoryData() error {
 	org := models.Organization{
 		Name: "system",
 	}
-	result = s.dbController.db_client.Create(&org)
+	result = s.dbController.Db_client.Create(&org)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return result.Error
@@ -102,6 +103,7 @@ func (s *System) CreateTablesAndMandatoryData() error {
 		log.Println(result.Error)
 		return result.Error
 	}
+	s.dbController.Db_client.Model(&systemUser).Association("Organizations").Append(&org)
 
 	//verify the system role
 	role := models.Role{
@@ -120,11 +122,11 @@ func (s *System) CreateTablesAndMandatoryData() error {
 		log.Println(result.Error)
 		return result.Error
 	}
-	s.dbController.db_client.Model(&systemUser).Association("Groups").Append(&group)
+	s.dbController.Db_client.Model(&systemUser).Association("Groups").Append(&group)
 	return nil
 }
 func (s *System) CheckMandatoryTableAndData() bool {
-	return s.dbController.db_client.Migrator().HasTable("ia_c_systems")
+	return s.dbController.Db_client.Migrator().HasTable("ia_c_systems")
 }
 
 func (s *System) IsNodeManager() bool {
@@ -240,7 +242,7 @@ func (s *System) Handle(operation *msg.Operation) {
 		// send request to service
 		deployment := msg.Deployment{}
 		git_data := msg.GitData{}
-
+		deployment.Action = operation.Action
 		deployment.CloudDestination = string(env.IaCExecutionSettings.DestinationCloud)
 		all_env_parameters := map[string]string{}
 		maps.Copy(all_env_parameters, cloud_credential.Variables)
@@ -277,8 +279,10 @@ func (s *System) Handle(operation *msg.Operation) {
 		deployment := &msg.Deployment{}
 		env := models.Environment{}
 		s.dbController.GetClient().Preload("Project").Preload("IaCArtifact").Preload("IaCExecutionSettings").First(&env, "id = ?", operation.ObjectID)
+		deployment.Action = operation.Action
 		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
+		deployment.IaCArtifactType = env.IaCArtifact.Type
 		deploy_json, err := json.Marshal(deployment)
 		if err != nil {
 			fmt.Println("Could not send serialized deployment object : ", err.Error())

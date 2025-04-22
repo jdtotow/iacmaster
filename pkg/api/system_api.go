@@ -1,8 +1,13 @@
 package api
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -13,7 +18,6 @@ import (
 	"time"
 
 	"github.com/anthdm/hollywood/actor"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jdtotow/iacmaster/pkg/controllers"
@@ -39,7 +43,6 @@ func getSupportedEnpoint() []string {
 		"/user",
 		"/group",
 		"/project",
-		"/organization",
 		"/iacartifact",
 		"role",
 		"/token",
@@ -86,11 +89,12 @@ func (s *SystemServer) Start() *SystemServer {
 	url := ":" + fmt.Sprintf("%d", s.port)
 	s.router.Use(gin.Recovery())
 	s.router.Use(jsonLoggerMiddleware())
-	s.router.Use(cors.Default())
 
 	s.router.GET("/", s.homePage)
 	s.router.POST("/", s.homePage)
 	s.router.GET("/nodetype", s.getNodeType)
+	s.router.POST("/user/login", s.loginUser)
+	s.router.POST("/organization", s.createOrganization)
 
 	for _, path := range s.supportedEndpoint {
 		s.router.GET(path, s.skittlesMan)           // get all entries
@@ -132,6 +136,53 @@ func (s *SystemServer) CreateEmptyEntityInstance(objectName string) interface{} 
 	}
 }
 
+func (s *SystemServer) computeHmac256(message []byte) string {
+	secret := os.Getenv("SECRET_KEY")
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write(message)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func (s *SystemServer) HashVerificationMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Skip for certain methods if needed
+		if c.Request.Method == http.MethodGet {
+			c.Next()
+			return
+		}
+
+		// Get the hash from header
+		clientHash := c.GetHeader("X-Content-Hash")
+		if clientHash == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "Content hash is required",
+			})
+			return
+		}
+		// Read the request body
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "Failed to read request body",
+			})
+			return
+		}
+		// Restore the body so controllers can read it again
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+		// Compute the server-side hash
+		serverHash := s.computeHmac256(body)
+		// Compare hashes
+		if !hmac.Equal([]byte(clientHash), []byte(serverHash)) {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "Content hash verification failed",
+			})
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func (s *SystemServer) homePage(context *gin.Context) {
 	context.IndentedJSON(
 		http.StatusOK,
@@ -141,6 +192,31 @@ func (s *SystemServer) homePage(context *gin.Context) {
 	)
 }
 
+func (s *SystemServer) loginUser(context *gin.Context) {
+	type Login struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	var login Login
+	err := context.BindJSON(&login)
+	if err != nil {
+		context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println("Login user with username: ", login.Username, " and password: ", login.Password)
+	user := models.User{}
+	result := s.dbController.GetClient().Preload("Organizations").Preload("Roles").Preload("Groups").Where("username = ?", login.Username).First(&user)
+	if result.Error != nil {
+		context.IndentedJSON(http.StatusNotFound, gin.H{})
+		return
+	}
+	token, err := s.CreateJWTToken(&user)
+	if err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"token": token, "user": user})
+}
 func (s *SystemServer) skittlesMan(context *gin.Context) {
 	path := context.FullPath()
 	var objectName string = ""
@@ -198,6 +274,32 @@ func (s *SystemServer) CreateJWTToken(userObject any) (string, error) {
 	return tokenString, nil
 }
 
+func (s *SystemServer) createOrganization(context *gin.Context) {
+	type PostOrgData struct {
+		Name   string `json:"name"`
+		UserID string `json:"user_id"`
+	}
+	var _data PostOrgData
+	err := context.BindJSON(&_data)
+	if err != nil {
+		context.IndentedJSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		return
+	}
+	org := models.CreateOrganization(_data.Name)
+	user := models.User{}
+	result := s.dbController.GetObjectByID(&user, _data.UserID)
+	if result.Error != nil {
+		context.IndentedJSON(http.StatusNotFound, gin.H{"error": result.Error.Error()})
+		return
+	}
+	result = s.dbController.CreateInstance(&org)
+	if result.Error != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+		return
+	}
+	s.dbController.Db_client.Model(&user).Association("Organizations").Append(&org)
+	context.IndentedJSON(http.StatusCreated, gin.H{"object": org})
+}
 func (s *SystemServer) Handle(context *gin.Context, objectName string) {
 	object := s.CreateEmptyEntityInstance(objectName)
 	if object == nil {

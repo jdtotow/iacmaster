@@ -6,6 +6,7 @@ enum OperationType {
     NO_OPERATION = 0;
     DEPLOYMENT = 1;
     UNDEPLOYMENT = 2;
+    DRIFT = 3;
 }
 enum Status {
     INIT = 0;

@@ -10,7 +10,7 @@ import (
 
 type DBController struct {
 	dbUri     string
-	db_client *gorm.DB
+	Db_client *gorm.DB
 }
 
 func CreateDBController() *DBController {
@@ -28,24 +28,24 @@ func CreateDBController() *DBController {
 	}
 	return &DBController{
 		dbUri:     uri,
-		db_client: db,
+		Db_client: db,
 	}
 }
 func (db *DBController) GetClient() *gorm.DB {
-	return db.db_client
+	return db.Db_client
 }
 func (db *DBController) CreateInstance(model interface{}) *gorm.DB {
-	return db.db_client.Create(model)
+	return db.Db_client.Create(model)
 }
 func (db *DBController) UpdateInstance(model interface{}) *gorm.DB {
-	return db.db_client.Save(model)
+	return db.Db_client.Save(model)
 }
 func (db *DBController) Delete(model interface{}) *gorm.DB {
-	return db.db_client.Delete(model)
+	return db.Db_client.Delete(model)
 }
 func (db *DBController) GetAll(models interface{}) *gorm.DB {
-	return db.db_client.Find(models)
+	return db.Db_client.Find(models)
 }
 func (db *DBController) GetObjectByID(model interface{}, id string) *gorm.DB {
-	return db.db_client.First(model, "id = ? ", id)
+	return db.Db_client.First(model, "id = ? ", id)
 }
