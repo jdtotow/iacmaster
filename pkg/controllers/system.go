@@ -1,12 +1,9 @@
 package controllers
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
-	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -160,9 +157,10 @@ func (s *System) Start() {
 			}
 			nodeAddr := setting[1] + ":3000"
 			node := &msg.NodeInfo{
-				Name:     nodeName,
-				Addr:     nodeAddr,
-				NodeType: uint32(models.Secondary),
+				Name:        nodeName,
+				Addr:        nodeAddr,
+				NodeType:    uint32(models.Secondary),
+				Deployments: []string{},
 			}
 			s.ClusterInfo.AddNode(node)
 		}
@@ -266,12 +264,15 @@ func (s *System) Handle(operation *msg.Operation) {
 			err := s.executorManager.StartDeployment(&deployment)
 			if err != nil {
 				log.Println(err)
+			} else {
+				s.ClusterInfo.AddDeploymentToNode(s.nodeInfo.Name, deployment.EnvironmentID)
 			}
 		} else {
 			log.Println("Deployment request must be sent to node executor")
 			random_node := s.ClusterInfo.GetRandomNode()
 			destinationPID := s.ClusterInfo.GetPIDNode(random_node.Name, "system")
 			s.ActorEngine.Send(destinationPID, &deployment)
+			s.ClusterInfo.AddDeploymentToNode(random_node.Name, deployment.EnvironmentID)
 		}
 
 	} else if operation.Action == "destroy_env" {
@@ -283,17 +284,16 @@ func (s *System) Handle(operation *msg.Operation) {
 		deployment.EnvironmentID = operation.ObjectID
 		deployment.HomeFolder = env.IaCArtifact.HomeFolder
 		deployment.IaCArtifactType = env.IaCArtifact.Type
-		deploy_json, err := json.Marshal(deployment)
-		if err != nil {
-			fmt.Println("Could not send serialized deployment object : ", err.Error())
-		} else {
-			resp, err := http.Post(s.serviceUrl+"/destroy", "application/json", bytes.NewBuffer(deploy_json))
-			log.Println("Request sent to service")
-			if err == nil {
-				fmt.Println(resp.StatusCode)
-			} else {
-				fmt.Println(err.Error())
+		// getting node executing
+		node := s.ClusterInfo.GetNodeExecutingDeployment(deployment.EnvironmentID)
+		if node == nil {
+			err := s.executorManager.StartDeployment(deployment)
+			if err != nil {
+				log.Println(err)
 			}
+		} else {
+			destinationPID := s.ClusterInfo.GetPIDNode(node.Name, "system")
+			s.ActorEngine.Send(destinationPID, &deployment)
 		}
 	} else {
 		fmt.Println("Unknown action: ", operation.ObjectID)

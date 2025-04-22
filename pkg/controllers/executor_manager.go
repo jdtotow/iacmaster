@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"slices"
+
 	"github.com/jdtotow/iacmaster/pkg/interfaces"
 	"github.com/jdtotow/iacmaster/pkg/models"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
@@ -50,7 +52,7 @@ func (em *ExecutorManager) AddExecutor(executor *models.Executor) error {
 func (em *ExecutorManager) RemoveExecutor(executor *models.Executor) {
 	for i, e := range em.executors {
 		if e == executor {
-			em.executors = append(em.executors[:i], em.executors[i+1:]...)
+			em.executors = slices.Delete(em.executors, i, i+1)
 			break
 		}
 	}

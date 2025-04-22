@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 
+	"slices"
+
 	"github.com/anthdm/hollywood/actor"
 	"github.com/jdtotow/iacmaster/pkg/protos/github.com/jdtotow/iacmaster/pkg/msg"
 )
@@ -45,6 +47,24 @@ func (ci *ClusterInfo) RemoveNode(name string) {
 	}
 }
 
+func (ci *ClusterInfo) GetNodeExecutingDeployment(deployment string) *msg.NodeInfo {
+	for _, node := range ci.Nodes {
+		if slices.Contains(node.Deployments, deployment) {
+			return node
+		}
+	}
+	return nil
+}
+
+func (ci *ClusterInfo) AddDeploymentToNode(nodeName, deployment string) bool {
+	for _, node := range ci.Nodes {
+		if node.Name == nodeName {
+			node.Deployments = append(node.Deployments, deployment)
+			return true
+		}
+	}
+	return false
+}
 func (ci *ClusterInfo) GetNodes() []*msg.NodeInfo {
 	return ci.Nodes
 }
@@ -54,7 +74,16 @@ func (ci *ClusterInfo) GetRandomNode() *msg.NodeInfo {
 	return ci.Nodes[rand_int]
 }
 
-func (ci *ClusterInfo) GetNodeAdd(name string) (string, error) {
+func (ci *ClusterInfo) GetNodeByName(name string) *msg.NodeInfo {
+	for _, node := range ci.Nodes {
+		if node.Name == name {
+			return node
+		}
+	}
+	return nil
+}
+
+func (ci *ClusterInfo) GetNodeAddr(name string) (string, error) {
 	for _, node := range ci.Nodes {
 		if node.Name == name {
 			return node.Addr, nil
